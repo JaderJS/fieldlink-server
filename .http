@@ -1,0 +1,28 @@
+@URL=http://localhost:3333
+
+###
+
+GET {{URL}}/user/find-many HTTP/1.1
+Content-Type: application/json
+
+###
+GET {{URL}}/user/66fe9719e159056825a7a058 HTTP/1.1
+###
+POST {{URL}}/user  HTTP/1.1
+Content-Type: application/json
+
+{
+    "email":"admin2@gmail.com",
+    "name":"admin",
+    "password":"admin"
+}
+###
+PUT {{URL}}/user/66fe9719e159056825a7a058 HTTP/1.1
+Content-Type: application/json
+
+{
+    "avatarUrl":"https://localhost.com",
+    "name":"Jader"
+}
+###
+DELETE {{URL}}/user/66fe9a87d65a73320dd5998b HTTP/1.1

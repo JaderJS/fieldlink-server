@@ -1,0 +1,33 @@
+@URL=http://localhost:3333
+
+###
+GET {{URL}}/property/find-many HTTP/1.1
+
+###
+POST {{URL}}/property HTTP/1.1
+Content-Type: application/json
+
+{
+    "name":"debug",
+    "manager":"Jader",
+    "sites":[{
+        "frequency":{
+            "rx":125,
+            "tx":126
+        },
+        "system":{
+            "analog":{
+                "type":"TPL",
+                "encoder":123,
+                "decoder":123
+            }
+        }
+    }]
+}
+
+###
+DELETE {{URL}}/property/asd HTTP/1.1
+
+###
+GET {{URL}}/property?rx=123&tolerance=2 HTTP/1.1
+###
