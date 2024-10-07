@@ -1,4 +1,19 @@
 services:
+  minio-fieldlink:
+    image: minio/minio:latest
+    container_name: minio-fieldlink
+    ports:
+      - "3334:9000"
+      - "3335:9001"
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=changemeplease123
+    volumes:
+      - minio-fieldlink-data:/data
+      - minio-fieldlink-config:/root/.minio
+    command: server /data --console-address ":3335"
+    restart: always
+
   mongodb:
     image: mongo:latest
     container_name: mongodb
@@ -12,5 +27,9 @@ services:
       - mongodb_data:/data/db
 
 volumes:
+  minio-fieldlink-data:
+    driver: local
+  minio-fieldlink-config: 
+    driver: local
   mongodb_data:
     driver: local

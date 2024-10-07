@@ -3,6 +3,14 @@ import { User } from '@/models/user-model'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
+const getAllGroups = async (req: FastifyRequest, res: FastifyReply) => {
+    try {
+        const groups = await Group.find()
+        return res.send({groups})
+    } catch (error) {
+        return res.status(500).send({ msg: 'Error on load all groups' })
+    }
+}
 const createOneGroup = async (req: FastifyRequest, res: FastifyReply) => {
 
     try {
@@ -19,6 +27,8 @@ const createOneGroup = async (req: FastifyRequest, res: FastifyReply) => {
         return res.status(500).send({ msg: 'Error to create group', error })
     }
 }
+
 export {
+    getAllGroups,
     createOneGroup
 }

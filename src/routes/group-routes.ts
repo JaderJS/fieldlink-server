@@ -1,8 +1,9 @@
+import { createOneGroup, getAllGroups } from "@/controllers/group-controller"
 import { FastifyInstance } from "fastify"
 
-const global = async (server: FastifyInstance) => {
-    // server.get(`/:cuid`, getUserByCuid)
-    // server.put(`/:cuid`, updateOneUser)
+const group = async (server: FastifyInstance) => {
+    server.get(`/`, getAllGroups)
+    server.post(`/`, createOneGroup)
 }
 
-export default global
+export default group

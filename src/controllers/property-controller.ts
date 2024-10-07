@@ -6,11 +6,33 @@ import { z } from "zod"
 
 const getProperties = async (req: FastifyRequest, res: FastifyReply) => {
     try {
-        const properties = await Property.find()
+        const { search } = z.object({ search: z.string().default("") }).parse(req.query)
+        const properties = await Property.find({
+            $or: [
+                { name: { $regex: search, $options: 'i' } }
+            ]
+        })
         return res.send({ properties })
     } catch (error) {
         return res.send({ msg: 'Failed rescue properties', error })
     }
+}
+
+const getPropertyById = async (req: FastifyRequest, res: FastifyReply) => {
+    try {
+        const { _id } = z.object({ _id: z.string().cuid2() }).parse(req.params)
+        const property = await Property.findOne({ _id })
+        return res.send({ property })
+    } catch (error) {
+        console.error(error)
+        return res.status(500).send({ msg: 'Failed rescue properties', error })
+    }
+}
+
+const createdAndAllocatedSiteInProperty = async (req: FastifyRequest, res: FastifyReply) => {
+    const { _id } = z.object({ _id: z.string().cuid2() }).parse(req.params)
+    const property = await Property.findByIdAndUpdate(_id, { new: true })
+    return res.send({ property })
 }
 
 const getProperty = async (req: FastifyRequest, res: FastifyReply) => {
@@ -137,5 +159,7 @@ export {
     createOneProperty,
     updateOneProperty,
     deleteOneProperty,
-    searchToProximityFrequency
+    getPropertyById,
+    searchToProximityFrequency,
+    createdAndAllocatedSiteInProperty
 } 

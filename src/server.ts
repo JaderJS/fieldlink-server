@@ -1,6 +1,8 @@
 import fastify from 'fastify'
 import mongoose from 'mongoose'
+
 import fastifyMultipart from '@fastify/multipart'
+import cors from '@fastify/cors'
 
 import userRoutes from '@/routes/user-routes'
 import propertyRoutes from '@/routes/property-routes'
@@ -9,9 +11,12 @@ import groupRoutes from '@/routes/group-routes'
 
 const server = fastify()
 
+server.register(cors, { origin: "*" })
+
 server.register(fastifyMultipart)
 server.register(userRoutes, { prefix: `/user` })
 server.register(propertyRoutes, { prefix: `/property` })
+server.register(groupRoutes, {prefix:`/group`})
 
 server.get(`/`, (req, res) => {
     res.send({ msg: "Running" })
