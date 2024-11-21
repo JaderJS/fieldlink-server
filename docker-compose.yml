@@ -1,37 +1,13 @@
 services:
-  minio-fieldlink:
-    image: minio/minio:latest
-    container_name: minio-fieldlink
-    ports:
-      - "3334:9000"
-      - "3335:9001"
-    environment:
-      - MINIO_ROOT_USER=root
-      - MINIO_ROOT_PASSWORD=changemeplease123
-    volumes:
-      - minio-fieldlink-data:/data
-      - minio-fieldlink-config:/root/.minio
-    command: server /data --console-address ":3335"
-    restart: always
 
   mongodb:
-    image: mongo:latest
+    image: mongo:4.4
     container_name: mongodb
     restart: always
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-    volumes:
-      - mongodb_data:/data/db
-
-volumes:
-  minio-fieldlink-data:
-    driver: local
-  minio-fieldlink-config: 
-    driver: local
-  mongodb_data:
-    driver: local
+      MONGO_INITDB_ROOT_USERNAME: fieldlink
+      MONGO_INITDB_ROOT_PASSWORD: CwFToy2aIDNP1oaV3Tug0rj1gFWYhnPh
 
 # Use root/example as user/password credentials

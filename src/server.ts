@@ -8,6 +8,7 @@ import userRoutes from '@/routes/user-routes'
 import propertyRoutes from '@/routes/property-routes'
 import equipmentRoutes from '@/routes/equipment-routes'
 import groupRoutes from '@/routes/group-routes'
+import config from '../config'
 
 const server = fastify()
 
@@ -22,9 +23,9 @@ server.get(`/`, (req, res) => {
     res.send({ msg: "Running" })
 })
 
-mongoose.connect("mongodb://root:example@localhost:27017").then(() => {
+mongoose.connect(config.URL_MONGO).then(() => {
     console.log('Connected in DB')
-    server.listen({ port: 3333 }, (error, address) => {
+    server.listen({ port: config.PORT || 3333 }, (error, address) => {
         if (error) {
             console.error(error)
             process.exit(1)
