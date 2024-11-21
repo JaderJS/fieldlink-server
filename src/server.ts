@@ -17,7 +17,7 @@ server.register(cors, { origin: "*" })
 server.register(fastifyMultipart)
 server.register(userRoutes, { prefix: `/user` })
 server.register(propertyRoutes, { prefix: `/property` })
-server.register(groupRoutes, {prefix:`/group`})
+server.register(groupRoutes, { prefix: `/group` })
 
 server.get(`/`, (req, res) => {
     res.send({ msg: "Running" })
@@ -25,7 +25,7 @@ server.get(`/`, (req, res) => {
 
 mongoose.connect(config.URL_MONGO).then(() => {
     console.log('Connected in DB')
-    server.listen({ port: config.PORT || 3333 }, (error, address) => {
+    server.listen({ port: config.PORT || 3333, host: '0.0.0.0' }, (error, address) => {
         if (error) {
             console.error(error)
             process.exit(1)
