@@ -39,3 +39,13 @@ jobs:
           script: |
             cd ~/fieldlinkserver
             pm2 restart fieldlink-server || pm2 start npm --name "fieldlink-server" -- start
+            
+      - name: Execute remote commands on VPS
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: 100.103.114.48
+          username: ${{ secrets.USER }}
+          password: ${{ secrets.PASSWORD }}
+          script: |
+            cd ~/fieldlinkserver
+            pm2 restart fieldlink-server || pm2 start npm --name "fieldlink-server" -- start
