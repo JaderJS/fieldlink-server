@@ -37,5 +37,5 @@ jobs:
           source: "./*"
           target: "./fieldlinkserver"
           script: |
-            cd ~/fieldlinkpage
+            cd ~/fieldlinkserver
             pm2 restart fieldlink-server || pm2 start npm --name "fieldlink-server" -- start
