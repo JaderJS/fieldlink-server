@@ -6,7 +6,7 @@ import { z } from 'zod'
 const getAllGroups = async (req: FastifyRequest, res: FastifyReply) => {
     try {
         const groups = await Group.find()
-        return res.send({groups})
+        return res.send({ groups })
     } catch (error) {
         return res.status(500).send({ msg: 'Error on load all groups' })
     }

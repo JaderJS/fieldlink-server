@@ -21,7 +21,10 @@ const getProperties = async (req: FastifyRequest, res: FastifyReply) => {
 const getPropertyById = async (req: FastifyRequest, res: FastifyReply) => {
     try {
         const { _id } = z.object({ _id: z.string().cuid2() }).parse(req.params)
-        const property = await Property.findOne({ _id })
+        const property = await Property.findOne({ _id }).populate('sites.coordinate').exec()
+        if (!property) {
+            return res.status(404).send()
+        }
         return res.send({ property })
     } catch (error) {
         console.error(error)
@@ -45,6 +48,7 @@ const createOneProperty = async (req: FastifyRequest, res: FastifyReply) => {
             .object({
                 name: z.string().min(3),
                 manager: z.string().min(3),
+                observation: z.string().nullish(),
                 sites: z.array(z.object({
                     frequency: z.object({
                         rx: z.number(),
@@ -64,6 +68,7 @@ const createOneProperty = async (req: FastifyRequest, res: FastifyReply) => {
                 })).nullish()
             })
             .refine(({ sites }) => {
+                if (!sites) return true
                 return sites?.some((site) => {
                     if (site.system.analog?.type !== "CSQ") {
                         const decoder = !!site.system.analog?.decoder
@@ -74,6 +79,7 @@ const createOneProperty = async (req: FastifyRequest, res: FastifyReply) => {
                 })
             }, { message: "Verify your silencie and encoder/decoder" })
             .refine(({ sites }) => {
+                if (!sites) return true
                 const isDigital = sites?.some((site) => !!site.system.digital) ?? false
                 const isAnalog = sites?.some((site) => !!site.system.analog) ?? false
                 return !(isDigital && isAnalog)
@@ -102,11 +108,11 @@ const createOneProperty = async (req: FastifyRequest, res: FastifyReply) => {
 
         console.log(result)
 
-        // const property = await Property.create(body)
+        const property = await Property.create(body)
         return res.send({ result })
 
     } catch (error) {
-        return res.send({ msg: 'Failed create property', error })
+        return res.status(500).send({ msg: 'Fail to create property', error })
     }
 }
 

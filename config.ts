@@ -7,7 +7,8 @@ const configSchema = z.object({
     SECRET_KEY_MINIO: z.string(),
     REGION_MINIO: z.string(),
     PORT: z.coerce.number(),
-    URL_MONGO: z.string()
+    URL_MONGO: z.string(),
+    KEY_TOKEN: z.string(),
 })
 
 const config = configSchema.parse(process.env)

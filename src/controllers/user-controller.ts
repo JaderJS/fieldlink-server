@@ -1,6 +1,7 @@
 import { User } from '@/models/user-model'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { hash } from 'bcrypt'
+import { decode, JwtPayload } from 'jsonwebtoken'
 import { z } from 'zod'
 
 const getAllUsers = async (req: FastifyRequest, res: FastifyReply) => {
@@ -16,6 +17,23 @@ const getUserByCuid = async (req: FastifyRequest, res: FastifyReply) => {
         return res.send({ msg: 'Failed rescue user', error })
     }
 }
+const getUserByToken = async (req: FastifyRequest, res: FastifyReply) => {
+    try {
+        const token = req.headers.authorization?.split(" ")[1]
+        if (!token) {
+            return res.status(400).send({ msg: 'No token send' })
+        }
+
+        const { _id, ...payload } = decode(token) as JwtPayload & { email?: string, _id?: string }
+        const user = await User.findById(_id)
+        if (!user) {
+            return res.status(404).send({ msg: 'User not founded' })
+        }
+        return res.send({ user })
+    } catch (error) {
+        return res.status(500).send({ msg: 'Erro to find user', error })
+    }
+}
 const createOneUser = async (req: FastifyRequest, res: FastifyReply) => {
     try {
         const { email, name, password, avatarUrl } = z
@@ -24,10 +42,11 @@ const createOneUser = async (req: FastifyRequest, res: FastifyReply) => {
 
         const passwordHash = await hash(password, 10)
 
-        const user = await new User({ email, name, password: passwordHash }).save()
+        const user = await new User({ email, name, password: passwordHash, avatarUrl }).save()
         return res.send({ msg: "User is created", user: user })
     } catch (error) {
-        return res.send({ msg: 'Failed to create user', error: error })
+
+        return res.status(500).send({ msg: 'Failed to create user', error: error })
     }
 }
 const updateOneUser = async (req: FastifyRequest, res: FastifyReply) => {
@@ -56,6 +75,7 @@ const deleteOneUser = async (req: FastifyRequest, res: FastifyReply) => {
 export {
     getAllUsers,
     getUserByCuid,
+    getUserByToken,
     createOneUser,
     updateOneUser,
     deleteOneUser
