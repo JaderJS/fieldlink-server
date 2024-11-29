@@ -13,7 +13,7 @@ import locationRoutes from '@/routes/location-routes'
 import groupRoutes from '@/routes/group-routes'
 import config from '../config'
 
-const server = fastify()
+const server = fastify({ logger: config.LOGGER })
 
 server.register(cors, { origin: "*" })
 

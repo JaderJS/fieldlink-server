@@ -9,6 +9,7 @@ const configSchema = z.object({
     PORT: z.coerce.number(),
     URL_MONGO: z.string(),
     KEY_TOKEN: z.string(),
+    LOGGER: z.boolean().default(false)
 })
 
 const config = configSchema.parse(process.env)
