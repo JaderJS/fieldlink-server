@@ -1,22 +1,24 @@
 import mongoose, { model, Schema } from "mongoose"
 
-const EquipmentSchema = new Schema({
-    model: { type: String, trim: true, required: true },
-    id: { type: Number, required: true },
+export type IEquipment = {
+    _id: string
+    model: string
+    profileUrl: string
+    manufacturer: string
+    type: 'mobile' | 'portable' | 'repeater'
+}
+
+const EquipmentSchema = new Schema<IEquipment>({
+    model: { type: String, trim: true, required: true, unique: true },
+    profileUrl: { type: String, required: true },
+    manufacturer: { type: String, required: true },
     type: {
         type: String,
         enum: ['mobile', 'portable', 'repeater'],
         required: true
     },
-    profileUrl: { type: String, required: true },
-    groups: [{
-        type: mongoose.Types.ObjectId,
-        ref: 'Group'
-    }],
-    file: {
-        type: mongoose.Types.ObjectId,
-        ref: 'File'
-    }
-})
+}, { timestamps: true, versionKey: false })
+
+
 
 export const Equipment = model('Equipment', EquipmentSchema)

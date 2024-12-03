@@ -10,6 +10,7 @@ import propertyRoutes from '@/routes/property-routes'
 import sitesRoutes from '@/routes/site-routes'
 import equipmentRoutes from '@/routes/equipment-routes'
 import locationRoutes from '@/routes/location-routes'
+import globalRoutes from '@/routes/global'
 import groupRoutes from '@/routes/group-routes'
 import config from '../config'
 
@@ -24,6 +25,8 @@ server.register(userRoutes, { prefix: `/user` })
 server.register(propertyRoutes, { prefix: `/property` })
 server.register(locationRoutes, { prefix: `/location` })
 server.register(groupRoutes, { prefix: `/group` })
+server.register(equipmentRoutes, { prefix: `/equipment` })
+server.register(globalRoutes)
 
 server.get(`/`, (req, res) => {
     res.send({ msg: "Running" })

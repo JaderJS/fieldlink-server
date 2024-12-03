@@ -23,6 +23,20 @@ const getSiteInfo = async (req: FastifyRequest, res: FastifyReply) => {
     }
 }
 
+const getAllSitesInProperty = async (req: FastifyRequest, res: FastifyReply) => {
+    try {
+        const { property_id } = z.object({ property_id: z.string().cuid2() }).parse(req.params)
+        const property = await Property.findById(property_id)
+        if (!property) {
+            return res.status(404).send({ msg: 'Property not founded' })
+        }
+        const sites = property?.sites ?? []
+        return res.send({ sites })
+    } catch (error) {
+        return res.status(500).send({ msg: 'Error to find sites', error })
+    }
+}
+
 const getSites = async (req: FastifyRequest, res: FastifyReply) => {
     try {
         const { frequency, proximity } = z.object({ frequency: z.coerce.number().default(0), proximity: z.coerce.number().default(0) }).parse(req.query)
@@ -101,7 +115,7 @@ const createOneOrMoreSiteInProperty = async (req: FastifyRequest, res: FastifyRe
         const saveDB = sites.map(async (site) => {
             const location = await Location.create({ name: site.coordinate.name, location: { type: 'Point', coordinates: site.coordinate.location.coordinates } })
             const newSite = { ...site, coordinate: location._id }
-            await Property.findOneAndUpdate({ _id }, { $push: { sites: { $each: [newSite] } } }, { new: true })
+
         })
 
         await Promise.all([saveDB])
@@ -110,6 +124,72 @@ const createOneOrMoreSiteInProperty = async (req: FastifyRequest, res: FastifyRe
     } catch (error) {
         console.log(error)
         return res.status(500).send({ msg: 'Failed to link site to property' })
+    }
+}
+
+const upsertOneOrMoreSiteInProperty = async (req: FastifyRequest, res: FastifyReply) => {
+    try {
+        const { property_id } = z.object({ property_id: z.string().cuid2() }).parse(req.params)
+        const { sites } = z.object({
+            sites: z.array(z.object({
+                _id: z.string().cuid2().optional(),
+                type: z.enum(['analog', 'digital']),
+                frequency: z.object({
+                    tx: z.coerce.number().min(0),
+                    rx: z.coerce.number().min(0)
+                }),
+                system: z.object({
+                    analog: z.object({
+                        type: z.enum(['CSQ', 'TPL', 'DPL']),
+                        encoder: z.coerce.number().optional(),
+                        decoder: z.coerce.number().optional(),
+                        invert: z.boolean().nullish(),
+                    }).optional(),
+                    digital: z.object({
+                        colorCode: z.coerce.number().min(0).max(15),
+                        slot: z.coerce.number().min(0).max(2)
+                    }).optional()
+                }).nullish(),
+                coordinate: z.object({
+                    name: z.string().default('PTMP'),
+                    location: z.object({
+                        type: z.enum(['Point']).default('Point'),
+                        coordinates: z.array(z.coerce.number()).length(2)
+                    })
+                })
+            }))
+        }).parse(req.body)
+
+        const operations = sites.map(async (site) => {
+            const location = new Location({ name: site.coordinate.name, location: { type: 'Point', coordinates: site.coordinate.location.coordinates } })
+            await location.save()
+
+            const updatedSite = { ...site, coordinate: location._id }
+
+            await Property.findOneAndUpdate(
+                {
+                    _id: property_id,
+                    'sites._id': updatedSite._id,
+                },
+                { $set: { 'sites.$': updatedSite } },
+                {
+                    upsert: true,
+                    new: true,
+                }
+            ).catch(async () => {
+                await Property.findOneAndUpdate(
+                    { _id: property_id },
+                    { $push: { sites: updatedSite } },
+                    { new: true }
+                )
+            })
+        })
+        const [response] = await Promise.all(operations)
+        console.log(response)
+
+        return res.send()
+    } catch (error) {
+        return res.status(500).send({ msg: 'Erro to create or update site' })
     }
 }
 
@@ -139,6 +219,7 @@ const getSitesByLocation = async (req: FastifyRequest, res: FastifyReply) => {
         return res.status(500).send({ msg: 'Failed to find sites by location' })
     }
 }
+
 const findOtherSites = async (req: FastifyRequest, res: FastifyReply) => {
     try {
 
@@ -165,11 +246,42 @@ const findOtherSites = async (req: FastifyRequest, res: FastifyReply) => {
     }
 }
 
+const getEquipmentsInSite = async (req: FastifyRequest, res: FastifyReply) => {
+    try {
+        const { _id } = z.object({ _id: z.string().cuid2() }).parse(req.params)
+        const equipments = await Property.aggregate<IProperty>([{ $unwind: '$sites' }, { $match: { 'site._id': new Types.ObjectId(_id) } }])
+        return res.send({ equipments })
+    } catch (error) {
+        return res.status(500).send({ msg: 'Failed to load equipments in site', error })
+    }
+}
+
+const getOneSite = async (req: FastifyRequest, res: FastifyReply) => {
+    try {
+        const { property_id, site_id } = z.object({ property_id: z.string().cuid2(), site_id: z.string().cuid2() }).parse(req.params)
+        const property = await Property.findById(property_id).populate(['sites.coordinate']).exec()
+
+        if (property?.sites?.length === 0) {
+            return res.status(404).send({ msg: 'Property not founded' })
+        }
+        const [site] = property?.sites?.filter((site: any) => site._id.toString() === site_id) ?? []
+
+        return res.send({ site })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).send({ msg: 'Error to load site' })
+    }
+}
+
 export {
     getSiteInfo,
+    getOneSite,
     getSites,
+    getAllSitesInProperty,
     createOneOrMoreSiteInProperty,
     deleteOneSite,
     getSitesByLocation,
-    findOtherSites
+    upsertOneOrMoreSiteInProperty,
+    findOtherSites,
+    getEquipmentsInSite
 }

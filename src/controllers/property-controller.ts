@@ -3,7 +3,6 @@ import property from "@/routes/property-routes"
 import { FastifyReply, FastifyRequest } from "fastify"
 import { z } from "zod"
 
-
 const getProperties = async (req: FastifyRequest, res: FastifyReply) => {
     try {
         const { search } = z.object({ search: z.string().default("") }).parse(req.query)
@@ -21,9 +20,10 @@ const getProperties = async (req: FastifyRequest, res: FastifyReply) => {
 const getPropertyById = async (req: FastifyRequest, res: FastifyReply) => {
     try {
         const { _id } = z.object({ _id: z.string().cuid2() }).parse(req.params)
-        const property = await Property.findOne({ _id }).populate('sites.coordinate').exec()
+        const property = await Property.findById(_id).populate(['sites.coordinate', 'equipments.model']).exec()
+
         if (!property) {
-            return res.status(404).send()
+            return res.status(404).send({ msg: 'Property not founded' })
         }
         return res.send({ property })
     } catch (error) {
@@ -106,9 +106,9 @@ const createOneProperty = async (req: FastifyRequest, res: FastifyReply) => {
             }
         ])
 
-        console.log(result)
 
         const property = await Property.create(body)
+        await property.save()
         return res.send({ result })
 
     } catch (error) {
