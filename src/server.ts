@@ -1,7 +1,8 @@
-import fastify from 'fastify'
+import fastify, { FastifyReply, FastifyRequest } from 'fastify'
 import mongoose from 'mongoose'
 
 import fastifyMultipart from '@fastify/multipart'
+import fastifyJwt from '@fastify/jwt'
 import cors from '@fastify/cors'
 
 import userRoutes from '@/routes/user-routes'
@@ -12,11 +13,30 @@ import equipmentRoutes from '@/routes/equipment-routes'
 import locationRoutes from '@/routes/location-routes'
 import globalRoutes from '@/routes/global'
 import groupRoutes from '@/routes/group-routes'
+import serviceRoutes from '@/routes/service-routes'
 import config from '../config'
+import auth from '@/core/auth'
+import { IUserJwt } from '../types'
+import { errorHandler } from './core/errors'
 
-const server = fastify({ logger: config.LOGGER })
-
+// const server = fastify({ logger: config.LOGGER })
+const server = fastify({ logger: { level: '' } })
 server.register(cors, { origin: "*" })
+server.register(fastifyJwt, {
+    secret: config.KEY_TOKEN,
+    formatUser: (user) => user
+})
+
+server.register(auth)
+// server.addHook("onRequest", async (req, res) => {
+//     try {
+//         await req.jwtVerify()
+//     } catch (err) {
+//         res.send(err)
+//     }
+// })
+
+server.setErrorHandler(errorHandler)
 
 server.register(fastifyMultipart)
 server.register(authRoutes)
@@ -26,6 +46,7 @@ server.register(propertyRoutes, { prefix: `/property` })
 server.register(locationRoutes, { prefix: `/location` })
 server.register(groupRoutes, { prefix: `/group` })
 server.register(equipmentRoutes, { prefix: `/equipment` })
+server.register(serviceRoutes, { prefix: '/service' })
 server.register(globalRoutes)
 
 server.get(`/`, (req, res) => {

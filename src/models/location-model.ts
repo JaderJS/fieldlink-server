@@ -1,6 +1,14 @@
 import { model, Schema } from "mongoose"
 
-export const LocationSchema = new Schema({
+export type ILocation = {
+    name: string
+    location: {
+        type: 'Point',
+        coordinates: [number]
+    }
+}
+
+export const LocationSchema = new Schema<ILocation>({
     name: { type: String, required: true },
     location: {
         type: {

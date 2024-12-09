@@ -1,6 +1,6 @@
 import { Property } from "@/models/property-models"
 import property from "@/routes/property-routes"
-import { FastifyReply, FastifyRequest } from "fastify"
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify"
 import { z } from "zod"
 
 const getProperties = async (req: FastifyRequest, res: FastifyReply) => {
@@ -11,6 +11,8 @@ const getProperties = async (req: FastifyRequest, res: FastifyReply) => {
                 { name: { $regex: search, $options: 'i' } }
             ]
         })
+        console.log(req.user.name)
+
         return res.send({ properties })
     } catch (error) {
         return res.send({ msg: 'Failed rescue properties', error })

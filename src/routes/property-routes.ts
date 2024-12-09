@@ -2,7 +2,7 @@ import { createdAndAllocatedSiteInProperty, createOneProperty, deleteOneProperty
 import { FastifyInstance } from "fastify"
 
 const property = async (server: FastifyInstance) => {
-    server.get(`/find-many`, getProperties)
+    server.get(`/find-many`, { onRequest: [server.auth] }, getProperties)
     server.get(`/:_id`, getPropertyById)
     server.post(`/`, createOneProperty)
     server.get(`/`, searchToProximityFrequency)

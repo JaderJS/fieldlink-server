@@ -1,5 +1,7 @@
 import { model, now, Schema } from "mongoose"
-type IUser = {
+export type IUser = {
+    _id?: string
+    isActive: boolean
     name: string
     email: string
     password: string
@@ -13,6 +15,11 @@ const UserSchema = new Schema<IUser>({
         required: true,
         unique: true,
         trim: true
+    },
+    isActive: {
+        type: Boolean,
+        required: true,
+        default: true
     },
     name: {
         type: String,
@@ -40,7 +47,7 @@ const UserSchema = new Schema<IUser>({
         required: true,
         default: now()
     }
-})
+}, { timestamps: true, versionKey: false })
 
 const User = model('User', UserSchema)
 export { User }

@@ -6,9 +6,9 @@ import { z } from 'zod'
 
 const getAllGroups = async (req: FastifyRequest, res: FastifyReply) => {
     try {
-        const { property_id } = z.object({ property_id: z.string().cuid2() }).parse(req.query)
+        const { property_id } = z.object({ property_id: z.string().cuid2().optional() }).parse(req.query)
         if (!property_id) {
-            const groups = Property.aggregate<IProperty>([{ $unwind: '$groups' }])
+            const groups = await Property.aggregate<IProperty>([{ $unwind: '$groups' }, { $replaceRoot: { newRoot: '$groups' } }])
             return res.send({ groups })
         }
         const groups = await Property.aggregate<IProperty>([
