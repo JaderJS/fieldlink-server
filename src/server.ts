@@ -14,6 +14,7 @@ import locationRoutes from '@/routes/location-routes'
 import globalRoutes from '@/routes/global'
 import groupRoutes from '@/routes/group-routes'
 import serviceRoutes from '@/routes/service-routes'
+import productRoutes from '@/routes/product-routes'
 import config from '../config'
 import auth from '@/core/auth'
 import { IUserJwt } from '../types'
@@ -47,6 +48,7 @@ server.register(locationRoutes, { prefix: `/location` })
 server.register(groupRoutes, { prefix: `/group` })
 server.register(equipmentRoutes, { prefix: `/equipment` })
 server.register(serviceRoutes, { prefix: '/service' })
+server.register(productRoutes, { prefix: '/product' })
 server.register(globalRoutes)
 
 server.get(`/`, (req, res) => {

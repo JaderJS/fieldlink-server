@@ -3,9 +3,9 @@ import { User } from '@/models/user-model'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
-const createOneService = async (req: FastifyRequest, res: FastifyReply) => {
-
+const upsertService = async (req: FastifyRequest, res: FastifyReply) => {
     const service = z.object({
+        _id: z.string().cuid2().optional(),
         name: z.string().min(3),
         description: z.string().min(3),
         services: z.array(z.object({
@@ -13,16 +13,16 @@ const createOneService = async (req: FastifyRequest, res: FastifyReply) => {
             description: z.string().optional(),
             materials: z.array(z.union([
                 z.string().cuid2(), z.string()
-            ])).nonempty(),
+            ])).optional(),
             files: z.array(z.object({
                 pathUrl: z.string().url(),
                 size: z.string().min(3),
                 contentType: z.string().min(3)
             })).optional(),
-            local: z.array(z.string().cuid2(), z.string()),
+            local: z.array(z.string().cuid2().optional()).optional(),
             schedule: z.object({
-                startDate: z.date(),
-                endDate: z.date(),
+                startDate: z.coerce.date(),
+                endDate: z.coerce.date(),
                 reminder: z.boolean().default(false),
                 notes: z.string().optional(),
                 recurrencePattern: z.array(z.number()).length(7).optional()
@@ -31,8 +31,11 @@ const createOneService = async (req: FastifyRequest, res: FastifyReply) => {
         status: z.enum(['pending', 'in-progress', 'completed']).default('pending')
     }).parse(req.body)
 
+    const updatedBy = { _id: req.user._id }
+    if (!service._id) {
 
-    await Service.create({ service })
+        await Service.create({ ...service,createdBy: updatedBy, updatedBy })
+    }
 
 }
 
@@ -42,4 +45,4 @@ const deleteOneService = async (req: FastifyRequest, res: FastifyReply) => {
 
     await Service.findOneAndUpdate({ _id })
 }
-export { createOneService, deleteOneService }
+export { upsertService, deleteOneService }

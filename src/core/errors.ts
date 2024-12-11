@@ -3,6 +3,8 @@ import { Error } from 'mongoose'
 import { ZodError } from "zod"
 
 const errorHandler: FastifyInstance['errorHandler'] = (error, req, res) => {
+    console.error(error)
+
     if (req.method === 'delete') {
         return res.status(204)
     }

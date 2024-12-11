@@ -44,23 +44,23 @@ const ServiceSchema = new Schema<IService>({
     services: [{
         name: { type: String, required: true },
         description: { type: String },
-        materials: [{ type: Types.ObjectId, ref: 'Product', required: true }],
+        materials: [{ type: Types.ObjectId, ref: 'Product' }],
         files: [{
             pathUr: { type: String, required: true },
             size: { type: String, required: true },
             contentType: { type: String, required: true }
         }],
         local: {
-            type: Types.ObjectId, ref: 'Location', required: true
-        }
+            type: Types.ObjectId, ref: 'Location'
+        },
+        schedule: {
+            startDate: { type: Date, required: true },
+            endDate: { type: Date, required: true },
+            reminder: { type: Boolean },
+            notes: { type: String },
+            recurrencePattern: [{ type: Number }]
+        },
     }],
-    schedule: {
-        startDate: { type: Date, required: true },
-        endDate: { type: Date, required: true },
-        reminder: { type: Boolean },
-        notes: { type: String },
-        recurrencePattern: [{ type: Number }]
-    },
     status: {
         type: String,
         enum: ['pending', 'in-progress', 'completed'],
@@ -76,7 +76,7 @@ const ServiceSchema = new Schema<IService>({
         ref: 'User',
         required: true
     },
-    isDeleted: { type: Boolean }
+    isDeleted: { type: Boolean, default: false }
 }, { timestamps: true })
 
 export const Service = model('Service', ServiceSchema)
