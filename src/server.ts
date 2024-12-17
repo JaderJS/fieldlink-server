@@ -15,6 +15,11 @@ import globalRoutes from '@/routes/global'
 import groupRoutes from '@/routes/group-routes'
 import serviceRoutes from '@/routes/service-routes'
 import productRoutes from '@/routes/product-routes'
+import dataRoutes from '@/routes/data-routes'
+
+import transactionsRoutes from '@/routes/transactions-routes'
+import bankRoutes from '@/routes/bank-routes'
+
 import config from '../config'
 import auth from '@/core/auth'
 import { IUserJwt } from '../types'
@@ -49,6 +54,12 @@ server.register(groupRoutes, { prefix: `/group` })
 server.register(equipmentRoutes, { prefix: `/equipment` })
 server.register(serviceRoutes, { prefix: '/service' })
 server.register(productRoutes, { prefix: '/product' })
+
+server.register(transactionsRoutes, { prefix: '/transaction' })
+server.register(bankRoutes, { prefix: '/bank' })
+
+server.register(dataRoutes, { prefix: '/data' })
+
 server.register(globalRoutes)
 
 server.get(`/`, (req, res) => {

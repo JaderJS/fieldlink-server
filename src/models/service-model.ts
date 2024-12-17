@@ -3,7 +3,7 @@ import { IUser } from "./user-model"
 import { ILocation } from "./location-model"
 import { IProduct } from "./product-model"
 
-type IService = {
+export type IService = {
     _id?: string
     __v?: number
     createdAt: number
