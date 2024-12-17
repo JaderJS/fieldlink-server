@@ -2,11 +2,11 @@ import { associateOneEquipmentModelInSite, connectGroupPropertyInEquipment, crea
 import { FastifyInstance } from "fastify"
 
 const equipment = async (server: FastifyInstance) => {
-    server.get(`/search`, getAllEquipments)
-    server.put(`/in-site`, associateOneEquipmentModelInSite)
-    server.post(`/:equipment_id/property/:property_id`, connectGroupPropertyInEquipment)
-    server.post(`/`, createOneEquipment)
-    server.delete(`/:equipment_id/property/:property_id`, deleteOneEquipment)
+    server.get(`/search`, { onResponse: [server.auth] }, getAllEquipments)
+    server.put(`/in-site`, { onResponse: [server.auth] }, associateOneEquipmentModelInSite)
+    server.post(`/:equipment_id/property/:property_id`, { onResponse: [server.auth] }, connectGroupPropertyInEquipment)
+    server.post(`/`, { onResponse: [server.auth] }, createOneEquipment)
+    server.delete(`/:equipment_id/property/:property_id`, { onResponse: [server.auth] }, deleteOneEquipment)
 }
 
 export default equipment

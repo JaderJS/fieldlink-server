@@ -6,7 +6,7 @@ import config from "../../config"
 const MAX_IMAGE_SIZE_UPLOAD = 1024 * 1024 * 4
 
 const global = async (server: FastifyInstance) => {
-    server.post(`/upload/image`, async (req, res) => {
+    server.post(`/upload/image`, { onResponse: [server.auth] }, async (req, res) => {
         try {
             const data = await req.file({ limits: { fileSize: MAX_IMAGE_SIZE_UPLOAD } })
             if (!data) {
@@ -24,7 +24,7 @@ const global = async (server: FastifyInstance) => {
             return res.status(500).send({ msg: 'Ops! You need attempt now' })
         }
     })
-    server.post(`/upload/file`, async (req, res) => {
+    server.post(`/upload/file`, { onResponse: [server.auth] }, async (req, res) => {
         try {
             const data = await req.file({ limits: { fileSize: MAX_IMAGE_SIZE_UPLOAD } })
             if (!data) {
