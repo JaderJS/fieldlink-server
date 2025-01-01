@@ -20,6 +20,8 @@ import dataRoutes from '@/routes/data-routes'
 import transactionsRoutes from '@/routes/transactions-routes'
 import bankRoutes from '@/routes/bank-routes'
 
+import databases from '@/routes/database-routes'
+
 import config from '../config'
 import auth from '@/core/auth'
 import { IUserJwt } from '../types'
@@ -59,6 +61,8 @@ server.register(transactionsRoutes, { prefix: '/transaction' })
 server.register(bankRoutes, { prefix: '/bank' })
 
 server.register(dataRoutes, { prefix: '/data' })
+
+server.register(databases, { prefix: '/database' })
 
 server.register(globalRoutes)
 

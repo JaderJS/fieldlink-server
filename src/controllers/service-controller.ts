@@ -3,6 +3,11 @@ import { User } from '@/models/user-model'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
+const getServices = async (req: FastifyRequest, res: FastifyReply) => {
+    const services = await Service.find()
+    return res.send({ services })
+}
+
 const upsertService = async (req: FastifyRequest, res: FastifyReply) => {
     const service = z.object({
         _id: z.string().cuid2().optional(),
@@ -34,7 +39,7 @@ const upsertService = async (req: FastifyRequest, res: FastifyReply) => {
     const updatedBy = { _id: req.user._id }
     if (!service._id) {
 
-        await Service.create({ ...service,createdBy: updatedBy, updatedBy })
+        await Service.create({ ...service, createdBy: updatedBy, updatedBy })
     }
 
 }
@@ -45,4 +50,4 @@ const deleteOneService = async (req: FastifyRequest, res: FastifyReply) => {
 
     await Service.findOneAndUpdate({ _id })
 }
-export { upsertService, deleteOneService }
+export { getServices, upsertService, deleteOneService }
