@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Service" ALTER COLUMN "endTime" DROP DEFAULT,
+ALTER COLUMN "startTime" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "Work" ALTER COLUMN "endTime" DROP DEFAULT,
+ALTER COLUMN "startTime" DROP DEFAULT;

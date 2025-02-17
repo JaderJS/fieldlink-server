@@ -1,0 +1,335 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+}
+
+enum TypeTransaction {
+  INPUT
+  OUTPUT
+}
+
+model User {
+  cuid      String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  nickname  String   @unique
+  avatarUrl String
+  role      Role
+  password  String
+  isEnable  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  myCompany             Company[]
+  myBanks               Bank[]
+  myTransactionsCreated Transactions[] @relation("transactionsCreatedBy")
+  myTransactionsUpdated Transactions[] @relation("transactionsUpdatedBy")
+  myProductsCreated     Product[]      @relation("productsCreatedBy")
+  myProductsUpdated     Product[]      @relation("productsUpdatedBy")
+  myPurchases           Cart[]
+
+  //Archives
+  myArchives                   Archives[]            @relation("ownerArchives")
+  myCreatedArchives            Archives[]            @relation("createdArchives")
+  myUpdatedArchives            Archives[]            @relation("updatedArchives")
+  myUpdatedProductPriceHistory ProductPriceHistory[]
+}
+
+model Archives {
+  cuid        String   @id @default(cuid())
+  title       String
+  size        String
+  type        String
+  path        String
+  pathUrl     String
+  createdCuid String
+  updatedCuid String
+  ownerCuid   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner     User @relation("ownerArchives", fields: [ownerCuid], references: [cuid])
+  createdBy User @relation("createdArchives", fields: [createdCuid], references: [cuid])
+  updatedBy User @relation("updatedArchives", fields: [updatedCuid], references: [cuid])
+
+  services    Work[]
+  transaction Transactions[]
+}
+
+enum ServiceType {
+  STARTED
+  PENDING
+  FINISHED
+  DROPPED
+}
+
+model Service {
+  id        Int         @id @default(autoincrement())
+  name      String
+  content   String
+  status    ServiceType
+  clientId  Int
+  startTime DateTime
+  endTime   DateTime
+
+  works        Work[]
+  transactions Transactions[]
+  client       Client         @relation(fields: [clientId], references: [id])
+}
+
+model Work {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  serviceId Int
+  startTime DateTime
+  endTime   DateTime
+
+  service        Service           @relation(fields: [serviceId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  archives       Archives[]
+  productsOnWork ProductsOnWorks[]
+  otherValues    OtherValues[]
+}
+
+model OtherValues {
+  id     Int     @id @default(autoincrement())
+  name   String
+  price  Float
+  works  Work[]
+  orders Order[]
+}
+
+model ProductsOnWorks {
+  workId    Int
+  productId Int
+  quantity  Int
+  price     Float
+
+  service Work    @relation(fields: [workId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([workId, productId])
+}
+
+model Period {
+  id           Int            @id @default(autoincrement())
+  startTime    DateTime
+  endTime      DateTime
+  name         String         @unique
+  order        Int            @default(0)
+  transactions Transactions[]
+}
+
+model Transactions {
+  id                  Int             @id @default(autoincrement())
+  title               String
+  type                TypeTransaction
+  description         String?
+  isDelete            Boolean         @default(false)
+  hasNfe              Boolean         @default(false)
+  value               Float           @default(0)
+  billed              Boolean         @default(false)
+  createCuid          String
+  updatedCuid         String
+  companyId           Int
+  bankId              Int
+  periodId            Int
+  serviceId           Int?
+  cartId              Int?
+  orderId             Int?
+  content             String          @default("")
+  periodAt            DateTime        @default(now())
+  fromAt              DateTime        @default(now())
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  parentTransactionId Int?
+
+  parentTransaction Transactions?  @relation("parentTransaction", fields: [parentTransactionId], references: [id])
+  subTransactions   Transactions[] @relation("parentTransaction")
+
+  company   Company  @relation(fields: [companyId], references: [id])
+  bank      Bank     @relation(fields: [bankId], references: [id])
+  service   Service? @relation(fields: [serviceId], references: [id])
+  cart      Cart?    @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  period    Period   @relation(fields: [periodId], references: [id])
+  createdBy User     @relation("transactionsCreatedBy", fields: [createCuid], references: [cuid])
+  updatedBy User     @relation("transactionsUpdatedBy", fields: [updatedCuid], references: [cuid])
+
+  archives Archives[]
+}
+
+enum ProductDiscountType {
+  NONE
+  PERCENT
+  AMOUNT
+}
+
+model Supplier {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  carts Cart[]
+}
+
+model Client {
+  id       Int       @id @default(autoincrement())
+  name     String
+  property String    @default("")
+  orders   Order[]
+  services Service[]
+}
+
+model Cart {
+  id           Int             @id @default(autoincrement())
+  status       OrderStatusType
+  assignedCuid String
+  supplierId   Int
+  createdAt    DateTime        @default(now())
+
+  supplier    Supplier         @relation(fields: [supplierId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  assignedBy  User             @relation(fields: [assignedCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
+  transaction Transactions[]
+  products    ProductsOnCart[]
+}
+
+model ProductsOnCart {
+  cartId    Int
+  productId Int
+  quantity  Int
+  price     Float
+
+  product Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  cart    Cart    @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([cartId, productId])
+}
+
+enum TypeProduct {
+  UND
+  m
+  L
+  g
+}
+
+model Product {
+  id            Int                 @id @default(autoincrement())
+  name          String
+  pictureUrl    String
+  description   String?
+  price         Float
+  discountType  ProductDiscountType
+  discountValue Float               @default(0)
+  stock         Int
+  CategoryId    Int
+  unity         TypeProduct
+  priceFn       String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  createCuid    String
+  updatedCuid   String
+
+  category  ProductCategory @relation(fields: [CategoryId], references: [id])
+  createdBy User            @relation("productsCreatedBy", fields: [createCuid], references: [cuid])
+  updatedBy User            @relation("productsUpdatedBy", fields: [updatedCuid], references: [cuid])
+
+  productsOnWork ProductsOnWorks[]
+  cart           ProductsOnCart[]
+  orders         ProductsOnOrder[]
+  priceHistory   ProductPriceHistory[]
+}
+
+model ProductPriceHistory {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  costValue   Float
+  saleValue   Float
+  updatedCuid String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product   Product @relation(fields: [productId], references: [id])
+  updatedBy User    @relation(fields: [updatedCuid], references: [cuid])
+}
+
+model ProductsOnOrder {
+  productId Int
+  orderId   Int
+  quantity  Int
+  price     Float
+
+  product Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([productId, orderId])
+}
+
+enum OrderStatusType {
+  PROCESS
+  INIT
+  FINISHED
+}
+
+model Order {
+  id           Int             @id @default(autoincrement())
+  status       OrderStatusType
+  assignedCuid String
+  createdAt    DateTime        @default(now())
+  clientId     Int
+
+  client       Client            @relation(fields: [clientId], references: [id], onUpdate: Cascade)
+  otherValues  OtherValues[]
+  products     ProductsOnOrder[]
+  transactions Transactions[]
+}
+
+model ProductCategory {
+  id               Int              @id @default(autoincrement())
+  name             String
+  slug             String
+  tags             String[]
+  parentCategoryId Int?             @unique
+  parent           ProductCategory? @relation("parentCategory", fields: [parentCategoryId], references: [id])
+  ProductCategory  ProductCategory? @relation("parentCategory")
+  products         Product[]
+}
+
+model Bank {
+  id                         Int      @id @default(autoincrement())
+  name                       String
+  pix                        String
+  limitBankingMovements      Float    @default(0)
+  limitBankingMovementsMonth Float    @default(0)
+  ownerCuid                  String
+  updatedBy                  String
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  owner        User           @relation(fields: [ownerCuid], references: [cuid])
+  transactions Transactions[]
+}
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String
+  cnpj      String
+  ownerCuid String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner        User           @relation(fields: [ownerCuid], references: [cuid])
+  transactions Transactions[]
+}

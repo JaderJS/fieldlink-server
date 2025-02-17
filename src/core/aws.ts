@@ -51,5 +51,26 @@ export class Bucket {
         return ({ path: key, pathUrl })
     }
 
+    static uploadFile = async (file: MultipartFile): Promise<Error | UploadProps> => {
+        if (!file) {
+            throw new Error('Your not File')
+        }
+        const bucket = 'fieldlink'
+        const key = `assets/${file.filename}`
+        const pathUrl = `${config.URL_MINIO}/${bucket}/${key}`
+
+        await new Upload({
+            client: s3,
+            params: {
+                Bucket: bucket,
+                Key: key,
+                Body: file.file,
+                ContentType: file.mimetype,
+                ACL: 'public-read',
+            },
+        }).done()
+        return ({ path: key, pathUrl })
+    }
+
 }
 export { s3, S3Client }

@@ -5,6 +5,13 @@ import { sign } from 'jsonwebtoken'
 import { z } from 'zod'
 import config from '../../config'
 import { Bank } from '@/models/bank-model'
+import { prisma } from '@/plugins/prisma.plugins'
+
+const getBanks = async (req: FastifyRequest, res: FastifyReply) => {
+
+    const banks = (await prisma.bank.findMany()).map((bank, index) => ({ ...bank, isDefault: index === 0 ? true : false }))
+    return res.send({ banks })
+}
 
 const upsertBank = async (req: FastifyRequest, res: FastifyReply) => {
     Bank
@@ -12,6 +19,4 @@ const upsertBank = async (req: FastifyRequest, res: FastifyReply) => {
 }
 
 
-export {
-    upsertBank,
-}
+export { getBanks, upsertBank, }

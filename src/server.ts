@@ -17,6 +17,14 @@ import serviceRoutes from '@/routes/service-routes'
 import productRoutes from '@/routes/product-routes'
 import dataRoutes from '@/routes/data-routes'
 
+import transactionsRoutesV2 from '@/routes/transactions.routes'
+import productsRoutesV2 from '@/routes/product.routes'
+import periodRoutes from '@/routes/period.routes'
+import companyRoutes from '@/routes/company.routes'
+import clientRoutes from '@/routes/client.routes'
+
+import archiveRoutes from '@/routes/archive.routes'
+
 import transactionsRoutes from '@/routes/transactions-routes'
 import bankRoutes from '@/routes/bank-routes'
 
@@ -26,9 +34,12 @@ import config from '../config'
 import auth from '@/core/auth'
 import { IUserJwt } from '../types'
 import { errorHandler } from './core/errors'
+import prismaPlugin from './plugins/prisma.plugins'
+
+import fastifyQs from 'fastify-qs'
 
 // const server = fastify({ logger: config.LOGGER })
-const server = fastify({ logger: { level: '' } })
+const server = fastify()
 server.register(cors, { origin: "*" })
 server.register(fastifyJwt, {
     secret: config.KEY_TOKEN,
@@ -36,17 +47,13 @@ server.register(fastifyJwt, {
 })
 
 server.register(auth)
-// server.addHook("onRequest", async (req, res) => {
-//     try {
-//         await req.jwtVerify()
-//     } catch (err) {
-//         res.send(err)
-//     }
-// })
+
+server.register(prismaPlugin)
 
 server.setErrorHandler(errorHandler)
 
 server.register(fastifyMultipart)
+server.register(fastifyQs, {})
 server.register(authRoutes)
 server.register(sitesRoutes, { prefix: `/site` })
 server.register(userRoutes, { prefix: `/user` })
@@ -57,7 +64,15 @@ server.register(equipmentRoutes, { prefix: `/equipment` })
 server.register(serviceRoutes, { prefix: '/service' })
 server.register(productRoutes, { prefix: '/product' })
 
+server.register(archiveRoutes, { prefix: '/archive' })
+
 server.register(transactionsRoutes, { prefix: '/transaction' })
+server.register(transactionsRoutesV2, { prefix: '/v2/transaction' })
+server.register(productsRoutesV2, { prefix: '/v2/product' })
+server.register(periodRoutes, { prefix: '/period' })
+server.register(companyRoutes, { prefix: '/company' })
+server.register(clientRoutes, { prefix: '/client' })
+
 server.register(bankRoutes, { prefix: '/bank' })
 
 server.register(dataRoutes, { prefix: '/data' })
@@ -70,14 +85,14 @@ server.get(`/`, (req, res) => {
     res.send({ msg: "Running" })
 })
 
-mongoose.connect(config.URL_MONGO).then((db) => {
+mongoose.connect(config.URL_MONGO).then(async (db) => {
     console.log('Connected in DB')
     server.listen({ port: config.PORT || 3333, host: '0.0.0.0' }, (error, address) => {
         if (error) {
             console.error(error)
             process.exit(1)
         }
-        server.log.info(`Server `)
+        server.log.info(`Server`)
         console.log(`Server running in ${address}`)
     })
 
