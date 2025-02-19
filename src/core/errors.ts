@@ -1,3 +1,4 @@
+import { PrismaClientValidationError } from "@prisma/client/runtime/library"
 import { FastifyInstance } from "fastify"
 import { Error } from 'mongoose'
 import { ZodError } from "zod"
@@ -7,6 +8,9 @@ const errorHandler: FastifyInstance['errorHandler'] = (error, req, res) => {
 
     if (req.method === 'delete') {
         return res.status(204)
+    }
+    if (error instanceof PrismaClientValidationError) {
+        console.log("AQUI FOI")
     }
     if (error instanceof Error) {
         const msg = `[MONGOOSE] - ${error.message} `

@@ -28,6 +28,8 @@ import archiveRoutes from '@/routes/archive.routes'
 import transactionsRoutes from '@/routes/transactions-routes'
 import bankRoutes from '@/routes/bank-routes'
 
+import dashboardRoutes from '@/routes/dashboard.routes'
+
 import databases from '@/routes/database-routes'
 
 import config from '../config'
@@ -74,6 +76,7 @@ server.register(companyRoutes, { prefix: '/company' })
 server.register(clientRoutes, { prefix: '/client' })
 
 server.register(bankRoutes, { prefix: '/bank' })
+server.register(dashboardRoutes, { prefix: '/dashboard' })
 
 server.register(dataRoutes, { prefix: '/data' })
 

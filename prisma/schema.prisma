@@ -111,6 +111,7 @@ model OtherValues {
   price  Float
   works  Work[]
   orders Order[]
+  cart   Cart[]
 }
 
 model ProductsOnWorks {
@@ -199,11 +200,13 @@ model Cart {
   assignedCuid String
   supplierId   Int
   createdAt    DateTime        @default(now())
+  isActive     Boolean         @default(true)
 
-  supplier    Supplier         @relation(fields: [supplierId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  assignedBy  User             @relation(fields: [assignedCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
-  transaction Transactions[]
-  products    ProductsOnCart[]
+  supplier       Supplier         @relation(fields: [supplierId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  assignedBy     User             @relation(fields: [assignedCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
+  otherValues    OtherValues[]
+  transaction    Transactions[]
+  productsOnCart ProductsOnCart[]
 }
 
 model ProductsOnCart {
@@ -247,7 +250,7 @@ model Product {
   updatedBy User            @relation("productsUpdatedBy", fields: [updatedCuid], references: [cuid])
 
   productsOnWork ProductsOnWorks[]
-  cart           ProductsOnCart[]
+  productsOnCart ProductsOnCart[]
   orders         ProductsOnOrder[]
   priceHistory   ProductPriceHistory[]
 }
@@ -257,12 +260,11 @@ model ProductPriceHistory {
   productId   Int
   costValue   Float
   saleValue   Float
-  updatedCuid String
+  createdCuid String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 
-  product   Product @relation(fields: [productId], references: [id])
-  updatedBy User    @relation(fields: [updatedCuid], references: [cuid])
+  product   Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  createdBy User    @relation(fields: [createdCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
 }
 
 model ProductsOnOrder {

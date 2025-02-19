@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify"
-import { balanceProducts, createCategory, createOnePurchase, getCategoryInProducts, getProduct, getProducts, getSuppliers, updateProduct, upsertProduct } from "@/controllers/product.controller"
+import { balanceProducts, createCategory, getPurchase, upsertPurchase, getCategoryInProducts, getProduct, getProducts, getSuppliers, updateProduct, upsertProduct, getPurchases } from "@/controllers/product.controller"
 import { getOrder, getOrders, upsertOrder } from "@/controllers/order.controller"
 
 const products = async (server: FastifyInstance) => {
@@ -10,7 +10,10 @@ const products = async (server: FastifyInstance) => {
     server.post('/:id/update', { onRequest: server.auth }, updateProduct)
     server.get('/suppliers', { onRequest: server.auth }, getSuppliers)
     server.get('/categories', { onRequest: server.auth }, getCategoryInProducts)
-    server.post('/purchase', { onRequest: server.auth }, createOnePurchase)
+
+    server.get('/purchase', { onRequest: [server.auth] }, getPurchases)
+    server.get('/purchase/:id', { onRequest: [server.auth] }, getPurchase)
+    server.post('/purchase', { onRequest: server.auth }, upsertPurchase)
     server.post('/category', { onRequest: server.auth }, createCategory)
 
     server.get('/orders', { onRequest: [server.auth] }, getOrders)

@@ -1,4 +1,5 @@
 import { prisma } from '@/plugins/prisma.plugins'
+import { findOrCreatePeriod } from '@/services/period.services'
 import { endOfMonth, format, startOfMonth } from 'date-fns'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
@@ -73,6 +74,8 @@ const createOneTransaction = async (req: FastifyRequest, res: FastifyReply) => {
     if (!bank || !company)
         return res.status(404).send()
 
+    const period = await findOrCreatePeriod({ periodAt: new Date() })
+
     await prisma.transactions.upsert({
         where: { id },
         create: {
@@ -83,7 +86,7 @@ const createOneTransaction = async (req: FastifyRequest, res: FastifyReply) => {
             value,
             content,
             bankId: bank.id,
-            periodId: periodId,
+            periodId: periodId === 0 ? period.id : periodId,
             companyId: company.id,
             serviceId: service?.id,
         },
