@@ -10,7 +10,13 @@ const configSchema = z.object({
     PORT: z.coerce.number(),
     URL_MONGO: z.string(),
     KEY_TOKEN: z.string(),
-    LOGGER: z.coerce.boolean().default(false)
+    LOGGER: z.coerce.boolean().default(false),
+
+    GOOGLE_KEY: z.string(),
+    GOOGLE_CLIENT_ID: z.string(),
+    GOOGLE_CLIENT_SECRET: z.string(),
+
+    URL_FRONT: z.string(),
 })
 
 const config = configSchema.parse(process.env)

@@ -1,6 +1,8 @@
+import { createEvent, deleteEvent } from '@/plugins/calendar'
+import { oauth2Client } from '@/plugins/google'
 import { prisma } from '@/plugins/prisma.plugins'
 import { findOrCreatePeriod } from '@/services/period.services'
-import { endOfMonth, format, startOfMonth } from 'date-fns'
+import { Transactions } from '@prisma/client'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
@@ -17,15 +19,12 @@ const getTransactions = async (req: FastifyRequest, reply: FastifyReply) => {
             order: { include: { client: {} } },
             service: { include: { client: {} } }
         },
-        orderBy: [{ period: { startTime: 'desc' } }, { fromAt: 'desc' }]
+        // orderBy: [{ id: "asc" }, { period: { startTime: 'desc' } }, { fromAt: 'desc' }]
+        orderBy: [{ id: 'asc' }, { period: { order: 'desc' } }]
+
     })
 
-    const process = transactions.map(({ value, ...transaction }) => ({
-        ...transaction,
-        value: transaction.type === 'OUTPUT' ? value * -1 : value
-    }))
-
-    return reply.send({ transactions: process })
+    return reply.send({ transactions })
 }
 
 const getTransaction = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -46,110 +45,71 @@ const getTransaction = async (req: FastifyRequest, reply: FastifyReply) => {
     return reply.send({ transaction })
 }
 
-const createOneTransaction = async (req: FastifyRequest, res: FastifyReply) => {
-
-    const { id, title, type, periodId, value, content, ...transaction } = z
+const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
+    const { id, title, description, type, periodId, value, content, fromAt, eventId, billed, hasNfe, bankId, isDelete } = z
         .object({
             id: z.number().default(0),
             title: z.string().min(3),
             type: z.enum(['INPUT', 'OUTPUT']),
-            description: z.string().optional(),
+            description: z.string().nullish(),
             hasNfe: z.boolean().default(false),
             value: z.coerce.number(),
             content: z.string(),
             billed: z.boolean().default(false),
+            hasNotify: z.boolean().default(false),
             fileUrl: z.string().optional(),
             periodId: z.coerce.number(),
             fromAt: z.coerce.date(),
-            bankId: z.number(),
+            bankId: z.coerce.number(),
             companyId: z.number(),
-            serviceId: z.number().default(0)
+            isDelete: z.boolean().default(false),
+            eventId: z.string().nullish(),
+            serviceId: z.number().nullish(),
         })
+        .transform(({ value, type, ...args }) => ({ ...args, type, value: type === 'OUTPUT' ? Math.abs(value) * -1 : Math.abs(value) }))
         .parse(req.body)
 
-    const bank = await prisma.bank.findUnique({ where: { id: transaction.bankId } })
-    const company = await prisma.company.findUnique({ where: { id: transaction.companyId } })
-    const service = await prisma.service.findUnique({ where: { id: transaction.serviceId } })
+    if (eventId) {
+        // deleteEvent({ id: eventId })
+    }
 
-    if (!bank || !company)
-        return res.status(404).send()
-
-    const period = await findOrCreatePeriod({ periodAt: new Date() })
+    const slug = createTransactionSlug({ title, type, content, value, billed, fromAt, hasNfe })
+    const event = await createEvent({ date: fromAt, title: title, description: slug })
 
     await prisma.transactions.upsert({
         where: { id },
         create: {
-            title: title,
+            title,
             type,
+            billed,
+            description,
             createCuid: req.user.cuid,
             updatedCuid: req.user.cuid,
             value,
             content,
-            bankId: bank.id,
-            periodId: periodId === 0 ? period.id : periodId,
-            companyId: company.id,
-            serviceId: service?.id,
+            periodId: periodId !== 0 ? periodId : (await findOrCreatePeriod({ periodAt: fromAt })).id,
+            fromAt,
+            bankId,
+            companyId: 1,
+            eventId: event.id
         },
         update: {
             title,
             type,
-            content,
-            period: { connect: { id: periodId } },
-            updatedBy: { connect: { cuid: req.user.cuid } }
-        }
-    })
-
-    return res.send()
-}
-
-const updateTransaction = async (req: FastifyRequest, res: FastifyReply) => {
-    const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
-
-    const { title, billed, type, value, fromAt, bankId, content, isDelete } = z
-        .object({
-            title: z.string().optional(),
-            billed: z.boolean().optional(),
-            type: z.enum(['INPUT', 'OUTPUT']).optional(),
-            value: z.number().min(0).optional(),
-            fromAt: z.coerce.date().optional(),
-            bankId: z.coerce.number().optional(),
-            content: z.string().optional(),
-            isDelete: z.boolean().optional(),
-        })
-        .parse(req.body)
-
-    if (bankId) {
-        await prisma.transactions.update({
-            where: { id },
-            data: {
-                title,
-                billed,
-                type,
-                value,
-                isDelete,
-                fromAt,
-                content,
-                updatedBy: { connect: { cuid: req.user.cuid } },
-                bank: { connect: { id: bankId } }
-            }
-        })
-        return res.send()
-    }
-    await prisma.transactions.update({
-        where: { id },
-        data: {
-            title,
             billed,
-            type,
+            description,
+            updatedCuid: req.user.cuid,
             value,
-            fromAt,
-            isDelete,
             content,
-            updatedBy: { connect: { cuid: req.user.cuid } },
+            periodId,
+            isDelete,
+            fromAt,
+            bankId,
+            eventId: event.id
         }
     })
 
-    return res.send()
+    return res.status(201).send()
 }
 
 const upsertTransactionPeriod = async (req: FastifyRequest, res: FastifyReply) => {
@@ -166,10 +126,26 @@ const upsertTransactionPeriod = async (req: FastifyRequest, res: FastifyReply) =
     return res.send()
 }
 
+const createTransactionSlug = ({ title, type, description, value, billed, fromAt, hasNfe }: Partial<Transactions>) => {
+    const transactionType = type === 'INPUT' ? 'Entrada' : 'Saída'
+    const billedStatus = billed ? 'Faturado' : 'Não faturado'
+    const nfeStatus = hasNfe ? 'Com NFE' : 'Sem NFE'
+    const formattedDate = fromAt?.toLocaleString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+
+    return `
+    Automação Fieldlink - Transação de ${transactionType}
+    Título: ${title}
+    Descrição: ${description || 'Sem descrição'}
+    Valor: R$${value?.toFixed(2)}
+    Status do Faturamento: ${billedStatus}
+    Data e Hora: ${formattedDate}
+    Status da NFE:* ${nfeStatus}
+    `
+}
+
 export {
     getTransactions,
     getTransaction,
-    createOneTransaction,
-    updateTransaction,
+    upsertTransaction,
     upsertTransactionPeriod
 }

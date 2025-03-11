@@ -1,4 +1,4 @@
-import { login } from "@/controllers/auth-controller"
+import { login } from "@/controllers/auth.controller"
 import { Bucket } from "@/core/aws"
 import { FastifyInstance } from "fastify"
 

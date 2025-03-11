@@ -1,91 +1,81 @@
 import { prisma } from "./prisma.plugins"
-import data from '../../assets/transactions_backup.json'
 import { ptBR } from 'date-fns/locale'
 import { endOfMonth, format, parse, startOfMonth } from "date-fns"
 import { z } from "zod"
+import { upsertEvent } from "./calendar"
+import { Transactions } from "@prisma/client"
+import { Credentials } from "google-auth-library"
+import { oauth2Client } from "./google"
+
+const DEFAULT_CONTENT = '<p>Caso necessário insira aqui informações úteis</p>'
 
 const main = async () => {
-    const company = await prisma.company.findFirst()
-    if (!company)
-        throw Error('No company founded')
 
-    const bank_ = {
-        "Nubank": 1,
-        "Bradesco": 2,
-        "Sicredi": 4,
+    const transactions = await prisma.transactions.findMany()
+
+    const dbGoogleTokens = await prisma.googleTokens.findFirst()
+
+    const tokens = dbGoogleTokens?.tokens as Credentials | undefined
+    if (!tokens) {
+        throw new Error("Token inválido ou expirado")
     }
 
-    for (const values of data) {
-        try {
-            const periodAt = parseDate(values.Mês.split(" ")[0])
-            const fromAt = parseDate2(values.Data)
-            let period = await prisma.period.findFirst({
-                where: {
-                    startTime: {
-                        lte: periodAt
-                    },
-                    endTime: {
-                        gte: periodAt
-                    }
-                }
-            })
-            if (!period) {
-                period = await prisma.period.create({
-                    data: {
-                        name: format(periodAt, 'MM/yyyy'), startTime: startOfMonth(periodAt), endTime: endOfMonth(periodAt)
-                    }
-                })
+    oauth2Client.setCredentials(tokens)
+
+    const accessToken = await oauth2Client.getAccessToken()
+    if (!accessToken) {
+        throw new Error("Token inválido ou expirado")
+    }
+
+
+    for (const transaction of transactions) {
+
+        const categoryId = !!transaction.serviceId ? 1 : (!!transaction.orderId ? 2 : (!!transaction.cartId ? 3 : 4))
+
+
+        const slug = createTransactionSlug({
+            title: transaction.title,
+            type: transaction.type,
+            content: transaction.content,
+            value: transaction.value,
+            billed: transaction.billed,
+            fromAt: transaction.fromAt,
+            hasNfe: transaction.hasNfe
+        })
+        const { id: eventId } = await upsertEvent({ id: transaction.eventId, date: transaction.fromAt, title: transaction.title, description: slug })
+
+        await prisma.transactions.update({
+            where: { id: transaction.id },
+            data: {
+                eventId: eventId,
+                hasNotify: !!eventId,
+                value: transaction.type === 'INPUT' ? Math.abs(transaction.value) : Math.abs(transaction.value) * -1,
             }
-
-            const value = parseMoney(values.f_real_value)
-
-            await prisma.transactions.create({
-                data: {
-                    title: values.Nome,
-                    description: values.Descrição,
-                    type: values.Tipo === 'Saída' ? 'OUTPUT' : 'INPUT',
-                    bankId: bank_[values.Contas.split(" ")[0] as keyof typeof bank_],
-                    billed: values["Faturado?"] === 'Yes' ? true : false,
-                    companyId: company.id,
-                    periodId: period.id,
-                    fromAt,
-                    value: value < 0 ? value * -1 : value,
-                    createCuid: 'cm6b5mkd80000mqdzjoeic94y',
-                    updatedCuid: "cm6b5mkd80000mqdzjoeic94y",
-                }
-            })
-
-            await wait(1000)
-            console.log("Sucesso: ", values.ID)
-        } catch {
-
-            console.error("Erro no ID: ", values.ID)
-        }
-
-
+        })
+        console.log(transaction.id, transaction.type, transaction.value)
+        await wait(2200)
     }
 
 }
 
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const createTransactionSlug = ({ title, type, description, value, billed, fromAt, hasNfe }: Partial<Transactions>) => {
+    const transactionType = type === 'INPUT' ? 'Entrada' : 'Saída'
+    const billedStatus = billed ? 'Faturado' : 'Não faturado'
+    const nfeStatus = hasNfe ? 'Com NFE' : 'Sem NFE'
+    const formattedDate = fromAt?.toLocaleString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric' })
 
-const parseDate = (dateString: string) => {
-    const date = parse(`${dateString}`, 'MM/yyyy', new Date());
-    return date
+    return `
+    Automação Fieldlink - Transação de ${transactionType}
+    Título: ${title}
+    Descrição: ${description || 'Sem descrição'}
+    Valor: R$${value?.toFixed(2)}
+    Status do Faturamento: ${billedStatus}
+    Data e Hora: ${formattedDate}
+    Status da NFE:* ${nfeStatus}
+    `
 }
 
-const parseDate2 = (dateString: string) => {
-    const date = parse(`${dateString}`, "d 'de' MMMM 'de' yyyy", new Date(), { locale: ptBR });
-    return date
-}
 
-const parseMoney = (value: string | number) => {
-    if (typeof value === 'string') {
-        const newValue = value.replace(',', '.')
-        return z.coerce.number().parse(newValue)
-    }
-
-    return z.coerce.number().parse(value)
-}
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 main()

@@ -16,18 +16,18 @@ const getOrder = async (req: FastifyRequest, res: FastifyReply) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
     const orderQuery = await prisma.order.findUniqueOrThrow({
         where: { id },
-        include: { client: {}, otherValues: {}, products: { include: { product: { include: { productsOnWork: {} } } } }, transactions: {} }
+        include: { client: {}, otherValues: {}, productsOnOrder: { include: { product: { include: { productsOnCart: {} } } } }, transactions: { include: { period: {} } } }
     })
     return res.send({ order: orderQuery })
 }
 
 const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
-    const { id, products, status, clientId, otherValues, payment } = z
+    const { id, productsOnOrder, status, clientId, otherValues, payment } = z
         .object({
             id: z.coerce.number().default(0),
             clientId: z.coerce.number(),
             status: z.enum(['INIT', 'PROCESS', 'FINISHED']),
-            products: z.array(z.object({
+            productsOnOrder: z.array(z.object({
                 id: z.coerce.number(),
                 price: z.coerce.number(),
                 quantity: z.coerce.number()
@@ -39,6 +39,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             })).optional(),
             payment: z.object({
                 method: z.enum(['INTEGRAL', 'INSTALLMENTS', 'OTHER']),
+                total: z.coerce.number(),
                 transactions: z.array(z.object({
                     id: z.coerce.number().default(0),
                     value: z.coerce.number(),
@@ -47,47 +48,52 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
                 })).nonempty(),
             }),
         })
-        .transform((args) => {
-            if (args.payment?.method !== 'INSTALLMENTS') {
-                return { ...args, payment: { ...args.payment, transactions: args.payment.transactions } }
-            }
-            return args
-        })
         .parse(req.body)
 
     const { client, ...order } = await prisma.order.upsert({
         where: { id },
         create: {
             assignedCuid: req.user.cuid,
+            total: payment.total,
             status,
             clientId,
-            products: { createMany: { data: products.map(({ id, price, quantity }) => ({ productId: id, price, quantity })) } }
         },
         update: {
             assignedCuid: req.user.cuid,
+            total: payment.total,
             status,
             clientId,
         },
         include: { client: {} }
     })
 
+    await prisma.productsOnOrder.deleteMany({
+        where: { orderId: order.id, productId: { notIn: productsOnOrder.map(({ id }) => id) } }
+    })
 
-    products.map(async ({ id, price, quantity }) => {
+    productsOnOrder.map(async ({ id, price, quantity }) => {
         if (quantity === 0) {
             await prisma.productsOnOrder.delete({ where: { productId_orderId: { orderId: order.id, productId: id } } })
         }
         await prisma.productsOnOrder.upsert({
             where: { productId_orderId: { orderId: order.id, productId: id } },
-            create: { orderId: order.id, productId: id, price, quantity },
-            update: { price, quantity },
+            create: {
+                orderId: order.id,
+                productId: id,
+                price,
+                quantity: Math.abs(quantity) * -1
+            },
+            update: {
+                price,
+                quantity: Math.abs(quantity) * -1
+            },
             include: { product: {} }
         })
     })
-    await prisma.productsOnOrder.deleteMany({
-        where: { orderId: order.id, productId: { notIn: products.map(({ id }) => id) } }
-    })
 
-    otherValues?.forEach(async ({ id, name, price }) => {
+
+
+    otherValues?.map(async ({ id, name, price }) => {
         await prisma.otherValues.upsert({
             where: { id },
             create: { name, price, orders: { connect: { id: order.id } } },
@@ -95,11 +101,16 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
         })
     })
 
+
+    await prisma.transactions.deleteMany({
+        where: { orderId: order.id, id: { notIn: payment.transactions.map(({ id }) => id) } }
+    })
+
     const titleTransaction = ` [venda] [${order.id}] [${client.name}]`
     payment?.transactions?.map(async ({ id, value, fromAt, periodId }, index) => {
         const titleParcel = `${(index + 1)}/${payment.transactions.length}`
         const period = await findOrCreatePeriod({ periodAt: fromAt })
-        const t = await prisma.transactions.upsert({
+        await prisma.transactions.upsert({
             where: { id },
             create: {
                 title: titleParcel + titleTransaction,
@@ -109,31 +120,37 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
                 createCuid: req.user.cuid,
                 updatedCuid: req.user.cuid,
                 periodId: periodId ?? period.id,
-                value,
+                value: Math.abs(value),
                 fromAt,
                 orderId: order.id,
             },
             update: {
                 title: titleParcel + titleTransaction,
-                value,
+                value: Math.abs(value),
                 periodId,
                 fromAt,
                 isDelete: false
             }
         })
-        console.log(t)
-    })
-    await prisma.transactions.deleteMany({
-        where: { orderId: order.id, id: { notIn: payment.transactions.map(({ id }) => id) } }
     })
 
+
     return res.status(201).send()
+}
+
+const deleteOrder = async (req: FastifyRequest, res: FastifyReply) => {
+    const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
+
+    await prisma.order.delete({ where: { id } })
+
+    return res.status(204).send()
 }
 
 
 export {
     getOrders,
     getOrder,
-    upsertOrder
+    upsertOrder,
+    deleteOrder
 }
 

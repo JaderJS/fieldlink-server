@@ -1,10 +1,4 @@
-import { CONSTANTS } from '@/constants'
-import { Product } from '@/models/product-model'
-import { Service } from '@/models/service-model'
-import { User } from '@/models/user-model'
 import { prisma } from '@/plugins/prisma.plugins'
-import { findOrCreatePeriod } from '@/services/period.services'
-import { endOfMonth, format, startOfMonth } from 'date-fns'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
@@ -20,11 +14,11 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
             category: {
                 include: { products: {} }
             },
-            orders: {},
-            productsOnWork: {},
+            productsOnOrder: {},
             productsOnCart: {},
-            priceHistory: { orderBy: { createdAt: 'asc' }, take: 3 },
-        }
+            priceHistory: { orderBy: { createdAt: 'desc' }, take: 3 },
+        },
+        orderBy: { id: 'asc' }
     })
 
     const categoriesQuery = await prisma.productCategory.findMany({
@@ -32,11 +26,10 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
         include: {
             products: {
                 include: {
-                    orders: {},
-                    productsOnWork: {},
+                    productsOnOrder: {},
                     productsOnCart: {},
                     category: {},
-                    priceHistory: { orderBy: { createdAt: 'asc' }, take: 3 },
+                    priceHistory: { orderBy: { createdAt: 'desc' }, take: 3 },
                 }
             }
         }
@@ -44,12 +37,13 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
 
     const products = productsQuery
         .map((p) => {
-            const outputOrder = p.orders.reduce((acc, arg) => acc + arg.quantity, 0)
-            const outputWork = p.productsOnWork.reduce((acc, arg) => acc + arg.quantity, 0)
+            const outputOrder = p.productsOnOrder.reduce((acc, arg) => acc + arg.quantity, 0)
             const inputCart = p.productsOnCart.reduce((acc, arg) => acc + arg.quantity, 0)
-            const total = inputCart - (outputOrder + outputWork)
+            const total = inputCart + outputOrder
             return {
                 ...p,
+                costValue: p.priceHistory?.[0]?.costValue ?? p.price,
+                saleValue: p.priceHistory?.[0]?.saleValue ?? 0,
                 stock: total,
                 price: p.priceHistory?.[0]?.costValue ?? p.price,
                 sale: p.priceHistory?.[0]?.saleValue ?? 0,
@@ -59,15 +53,16 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
     const categories = categoriesQuery
         .map((category) => {
             const products = category.products.map((p) => {
-                const outputOrder = p.orders.reduce((acc, arg) => acc + arg.quantity, 0)
-                const outputWork = p.productsOnWork.reduce((acc, arg) => acc + arg.quantity, 0)
+                const outputOrder = p.productsOnOrder.reduce((acc, arg) => acc + arg.quantity, 0)
                 const inputCart = p.productsOnCart.reduce((acc, arg) => acc + arg.quantity, 0)
-                const total = inputCart - (outputOrder + outputWork)
+                const total = inputCart + outputOrder
                 return {
                     ...p,
                     stock: total,
                     price: p.priceHistory?.[0]?.costValue ?? p.price,
                     sale: p.priceHistory?.[0]?.saleValue ?? 0,
+                    costValue: p.priceHistory?.[0]?.costValue ?? p.price,
+                    saleValue: p.priceHistory?.[0]?.saleValue ?? 0,
                 }
             })
             return { ...category, products }
@@ -80,14 +75,13 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
 const balanceProducts = async (req: FastifyRequest, res: FastifyReply) => {
     const productsQuery = await prisma.product.findMany({
         include:
-            { category: { include: { products: {} } }, orders: {}, productsOnWork: {}, productsOnCart: {} }
+            { category: { include: { products: {} } }, productsOnOrder: {}, productsOnCart: {} }
     })
 
     const sellProducts = productsQuery
         .map((p) => {
-            const outputOrder = p.orders.reduce((acc, arg) => acc + arg.quantity, 0)
-            const outputWork = p.productsOnWork.reduce((acc, arg) => acc + arg.quantity, 0)
-            const total = (outputOrder + outputWork) * -1
+            const outputOrder = p.productsOnOrder.reduce((acc, arg) => acc + arg.quantity, 0)
+            const total = (outputOrder) * -1
             return { ...p, stock: total }
         })
 
@@ -252,25 +246,30 @@ const getPurchases = async (req: FastifyRequest, res: FastifyReply) => {
 
 const upsertPurchase = async (req: FastifyRequest, res: FastifyReply) => {
 
-    const { id, products, supplierId, payment, otherValues } = z.object({
+    const { id, cart, supplierId, payment, otherValues } = z.object({
         id: z.coerce.number().default(0),
-        products: z.array(z.object({
-            id: z.coerce.number(),
-            quantity: z.coerce.number(),
-            price: z.coerce.number()
-        })),
+        cart: z.object({
+            id: z.coerce.number().default(0),
+            status: z.enum(['PROCESS', 'INIT', 'FINISHED']),
+            productsOnCart: z.array(z.object({
+                id: z.coerce.number(),
+                quantity: z.coerce.number(),
+                price: z.coerce.number(),
+            })).min(1),
+        }),
         otherValues: z.array(z.object({
             id: z.coerce.number().default(0),
-            price: z.coerce.number(),
-            name: z.string()
+            name: z.string(),
+            price: z.coerce.number()
         })).optional(),
         supplierId: z.coerce.number(),
         payment: z.object({
-            bankId: z.coerce.number(),
-            method: z.enum(['INTEGRAL', 'INSTALLMENT', 'OTHERS']),
+            method: z.enum(['INTEGRAL', 'INSTALLMENTS', 'OTHER']).default('INTEGRAL'),
+            total: z.coerce.number(),
             transactions: z.array(z.object({
                 id: z.coerce.number().default(0),
                 value: z.coerce.number(),
+                bankId: z.coerce.number(),
                 fromAt: z.coerce.date(),
                 periodId: z.coerce.number()
             })).nonempty(),
@@ -280,31 +279,33 @@ const upsertPurchase = async (req: FastifyRequest, res: FastifyReply) => {
     const title = `Compra fornecedor`
     const companyId = 1
 
-    const cart = await prisma.cart.upsert({
+    const cartMutation = await prisma.cart.upsert({
         where: { id },
         create: {
-            status: 'INIT',
+            status: cart.status,
             assignedCuid: req.user.cuid,
             supplierId,
+            total: payment.total
         },
         update: {
             supplierId,
+            total: payment.total
         }
     })
 
-    await prisma.productsOnCart.deleteMany({ where: { cartId: cart.id, productId: { notIn: products.map(({ id }) => id) } } })
-    products.map(async ({ price, quantity, ...product }) => {
+    await prisma.productsOnCart.deleteMany({ where: { cartId: cart.id, productId: { notIn: cart.productsOnCart.map(({ id }) => id) } } })
+    cart?.productsOnCart.map(async ({ price, quantity, ...product }) => {
         await prisma.productsOnCart.upsert({
             where: { cartId_productId: { cartId: cart.id, productId: product.id } },
             create: {
                 price,
-                quantity,
-                cartId: cart.id,
+                quantity: Math.abs(quantity),
+                cartId: cartMutation.id,
                 productId: product.id
             },
             update: {
                 price,
-                quantity,
+                quantity: Math.abs(quantity),
             }
         })
     })
@@ -316,7 +317,7 @@ const upsertPurchase = async (req: FastifyRequest, res: FastifyReply) => {
             create: {
                 name,
                 price,
-                cart: { connect: { id: cart.id } }
+                cart: { connect: { id: cartMutation.id } }
             }, update: {
                 name,
                 price,
@@ -325,9 +326,9 @@ const upsertPurchase = async (req: FastifyRequest, res: FastifyReply) => {
     })
 
     let parentId: number | undefined
-    await prisma.transactions.deleteMany({ where: { cartId: cart.id, id: { notIn: payment.transactions.map(({ id }) => id) } } })
 
-    for (const [index, { id, periodId, value, fromAt }] of payment.transactions.entries()) {
+    await prisma.transactions.deleteMany({ where: { cartId: cart.id, id: { notIn: payment.transactions.map(({ id }) => id) } } })
+    for (const [index, { id, periodId, value, fromAt, bankId }] of payment.transactions.entries()) {
         const title = `${payment.transactions.length}/${index + 1} - [compra]`
 
         const transaction = await prisma.transactions.upsert({
@@ -335,26 +336,26 @@ const upsertPurchase = async (req: FastifyRequest, res: FastifyReply) => {
             create: {
                 periodId,
                 title,
-                value,
+                value: Math.abs(value) * -1,
                 fromAt,
                 type: "OUTPUT",
                 companyId,
-                bankId: payment.bankId,
+                bankId,
                 createCuid: req.user.cuid,
                 updatedCuid: req.user.cuid,
                 parentTransactionId: parentId,
-                cartId: cart.id,
+                cartId: cartMutation.id,
             },
             update: {
                 periodId,
                 title,
-                value,
+                value: Math.abs(value) * -1,
                 fromAt,
                 companyId,
-                bankId: payment.bankId,
+                bankId,
                 updatedCuid: req.user.cuid,
                 parentTransactionId: parentId,
-                cartId: cart.id
+                cartId: cartMutation.id
             }
         })
 
@@ -364,6 +365,15 @@ const upsertPurchase = async (req: FastifyRequest, res: FastifyReply) => {
     }
 
     return res.status(201).send()
+}
+
+const deletePurchase = async (req: FastifyRequest, res: FastifyReply) => {
+    const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
+
+    await prisma.cart.delete({ where: { id } })
+
+    return res.status(204).send()
+
 }
 
 const getSuppliers = async (req: FastifyRequest, res: FastifyReply) => {
@@ -381,6 +391,7 @@ export {
     getPurchases,
     getPurchase,
     upsertPurchase,
+    deletePurchase,
 
     getSuppliers,
     getCategoryInProducts,

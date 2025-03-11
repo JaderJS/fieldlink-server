@@ -1,6 +1,6 @@
 import "fastify"
 import "@fastify/jwt"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, Role } from "@prisma/client"
 
 declare module "fastify" {
     interface FastifyInstance {
@@ -8,6 +8,8 @@ declare module "fastify" {
             request: FastifyRequest,
             reply: FastifyReply
         ) => Promise<void>,
+        authorize: (allowedRoles: string[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>,
+        google: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
         prisma: PrismaClient
     }
 }
@@ -31,6 +33,7 @@ declare module "@fastify/jwt" {
             _id: string,
             email: string,
             name: string,
+            role: 'USER' | 'ROOT' | 'ADMIN'
             avatarUrl: string,
         }
     }

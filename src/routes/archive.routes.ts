@@ -1,6 +1,4 @@
 import { getArchives, uploadArchive, upsertArchive } from "@/controllers/archive.controller"
-import { login } from "@/controllers/auth-controller"
-import { getBanks, upsertBank } from "@/controllers/bank-controller"
 import { FastifyInstance } from "fastify"
 
 const archive = async (server: FastifyInstance) => {

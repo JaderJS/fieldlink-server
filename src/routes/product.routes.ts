@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify"
-import { balanceProducts, createCategory, getPurchase, upsertPurchase, getCategoryInProducts, getProduct, getProducts, getSuppliers, updateProduct, upsertProduct, getPurchases } from "@/controllers/product.controller"
-import { getOrder, getOrders, upsertOrder } from "@/controllers/order.controller"
+import { balanceProducts, createCategory, getPurchase, upsertPurchase, getCategoryInProducts, getProduct, getProducts, getSuppliers, updateProduct, upsertProduct, getPurchases, deletePurchase } from "@/controllers/product.controller"
+import { deleteOrder, getOrder, getOrders, upsertOrder } from "@/controllers/order.controller"
 
 const products = async (server: FastifyInstance) => {
     server.get('/', { onRequest: server.auth }, getProducts)
@@ -14,11 +14,14 @@ const products = async (server: FastifyInstance) => {
     server.get('/purchase', { onRequest: [server.auth] }, getPurchases)
     server.get('/purchase/:id', { onRequest: [server.auth] }, getPurchase)
     server.post('/purchase', { onRequest: server.auth }, upsertPurchase)
+    server.delete('/purchase/:id', { onRequest: [server.auth] }, deletePurchase)
+
     server.post('/category', { onRequest: server.auth }, createCategory)
 
     server.get('/orders', { onRequest: [server.auth] }, getOrders)
     server.get('/order/:id', { onRequest: [server.auth] }, getOrder)
     server.post('/order', { onRequest: [server.auth] }, upsertOrder)
+    server.delete('/order/:id', { onRequest: [server.auth] }, deleteOrder)
 }
 
 export default products
