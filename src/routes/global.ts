@@ -2,14 +2,11 @@ import { Bucket } from "@/core/aws"
 import { FastifyInstance } from "fastify"
 import { createId } from '@paralleldrive/cuid2'
 import config from "../../config"
-import { google } from "googleapis"
-import { oauth2 } from "googleapis/build/src/apis/oauth2"
 import { z } from "zod"
 import { oauth2Client, scope } from "@/plugins/google"
-import { createEvent } from "@/plugins/calendar"
 import { add } from "date-fns"
-import { prisma } from "@/plugins/prisma.plugins"
-import { Prisma } from "@prisma/client"
+import { db } from "@/plugins/prisma.plugins"
+import { db } from "@prisma/client"
 
 const MAX_IMAGE_SIZE_UPLOAD = 1024 * 1024 * 4
 const MY_CUID = "cm6b5mkd80000mqdzjoeic94y"
@@ -64,11 +61,11 @@ const global = async (server: FastifyInstance) => {
 
         oauth2Client.setCredentials(tokens)
 
-        const dbGoogleTokens = await prisma.googleTokens.findFirst()
+        const dbGoogleTokens = await db.googleTokens.findFirst()
         if (dbGoogleTokens) {
-            await prisma.googleTokens.update({ where: { id: dbGoogleTokens.id }, data: tokens })
+            await db.googleTokens.update({ where: { id: dbGoogleTokens.id }, data: { tokens: tokens as db.JsonObject } })
         } else {
-            await prisma.googleTokens.create({ data: { tokens: tokens as Prisma.JsonObject } })
+            await db.googleTokens.create({ data: { tokens: tokens as db.JsonObject } })
         }
 
         return res.redirect(config.URL_FRONT)

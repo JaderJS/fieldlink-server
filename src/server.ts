@@ -5,28 +5,28 @@ import fastifyMultipart from '@fastify/multipart'
 import fastifyJwt from '@fastify/jwt'
 import cors from '@fastify/cors'
 
-import userRoutes from '@/routes/user.routes'
-import notificationRoutes from '@/routes/notification.routes'
+import userRoutes from '@/model/user/user.routes'
+import notificationRoutes from '@/model/notification/notification.routes'
 
-import authRoutes from '@/routes/auth-routes'
-import propertyRoutes from '@/routes/property.routes'
-import equipmentRoutes from '@/routes/equipment.routes'
+import authRoutes from '@/model/auth/auth.routes'
+import propertyRoutes from '@/model/station/property.routes'
+import equipmentRoutes from '@/model/equipment/equipment.routes'
 import globalRoutes from '@/routes/global'
-import groupRoutes from '@/routes/group.routes'
-import serviceRoutes from '@/routes/service.routes'
+import groupRoutes from '@/model/group/group.routes'
+import serviceRoutes from '@/model/service/service.routes'
 import dataRoutes from '@/routes/data-routes'
 
-import transactionsRoutesV2 from '@/routes/transactions.routes'
-import productsRoutesV2 from '@/routes/product.routes'
-import periodRoutes from '@/routes/period.routes'
-import companyRoutes from '@/routes/company.routes'
-import clientRoutes from '@/routes/client.routes'
+import transactionsRoutesV2 from '@/model/transaction/transactions.routes'
+import productsRoutesV2 from '@/model/product/product.routes'
+import periodRoutes from '@/model/period/period.routes'
+import companyRoutes from '@/model/company/company.routes'
+import clientRoutes from '@/model/client/client.routes'
 
-import archiveRoutes from '@/routes/archive.routes'
+import archiveRoutes from '@/model/archive/archive.routes'
 
-import bankRoutes from '@/routes/bank-routes'
+import bankRoutes from '@/model/bank/bank.routes'
 
-import dashboardRoutes from '@/routes/dashboard.routes'
+import dashboardRoutes from '@/model/dashboard/dashboard.routes'
 
 import databases from '@/routes/database-routes'
 
@@ -39,8 +39,8 @@ import prismaPlugin from './plugins/prisma.plugins'
 import fastifyQs from 'fastify-qs'
 import google from './core/google'
 
-// const server = fastify({ logger: config.LOGGER })
 const server = fastify()
+
 server.register(cors, { origin: "*", credentials: true })
 server.register(fastifyJwt, {
     secret: config.KEY_TOKEN,
@@ -91,16 +91,18 @@ server.get(`/`, (req, res) => {
     res.send({ msg: "Running" })
 })
 
-mongoose.connect(config.URL_MONGO).then(async (db) => {
-    console.log('Connected in DB')
-    server.listen({ port: config.PORT || 3333, host: '0.0.0.0' }, (error, address) => {
-        if (error) {
-            console.error(error)
-            process.exit(1)
-        }
-        console.log(`Server running in ${address}`)
-    })
-
-}).catch((error) => {
-    console.error(error)
+server.listen({ port: config.PORT || 3333, host: '0.0.0.0' }, (error, address) => {
+    if (error) {
+        console.error(error)
+        process.exit(1)
+    }
+    console.log(`Server running in ${address}`)
 })
+
+// mongoose.connect(config.URL_MONGO).then(async (db) => {
+//     console.log('Connected in DB')
+   
+
+// }).catch((error) => {
+//     console.error(error)
+// })

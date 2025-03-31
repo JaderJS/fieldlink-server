@@ -1,9 +1,9 @@
-import { prisma } from "@/plugins/prisma.plugins"
+import { db } from "@/plugins/prisma.plugins"
 import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify"
 import { z } from "zod"
 
 const getChannelsSchema = async (req: FastifyRequest, res: FastifyReply) => {
-    const channelsSchema = await prisma.channelSchema.findMany({ include: { equipments: {} } })
+    const channelsSchema = await db.channelSchema.findMany({ include: { equipments: {} } })
     return res.send({ channelsSchema })
 }
 
@@ -15,7 +15,7 @@ const upsertChannelSchema = async (req: FastifyRequest, res: FastifyReply) => {
         equipmentsIds: z.array(z.coerce.number())
     }).parse(req.body)
 
-    await prisma.channelSchema.upsert({
+    await db.channelSchema.upsert({
         where: { id },
         create: {
             title,
@@ -40,7 +40,7 @@ const upsertChannelAnalog = async (req: FastifyRequest, res: FastifyReply) => {
         order: z.coerce.number().default(0)
     }).parse(req.body)
 
-    await prisma.channelAnalogOnChannelSchema.upsert({
+    await db.channelAnalogOnChannelSchema.upsert({
         where: {
             channelSchemaId_stationId: {
                 channelSchemaId,
@@ -69,7 +69,7 @@ const upsertChannelDigital = async (req: FastifyRequest, res: FastifyReply) => {
         order: z.coerce.number().default(0)
     }).parse(req.body)
 
-    prisma.channelDigitalOnChannelSchema.upsert({
+    db.channelDigitalOnChannelSchema.upsert({
         where: {
             channelSchemaId_stationId_groupId: {
                 channelSchemaId,

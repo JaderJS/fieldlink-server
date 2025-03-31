@@ -10,6 +10,9 @@ const errorHandler: FastifyInstance['errorHandler'] = (error, req, res) => {
         return res.status(204)
     }
     if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P1001') {
+            return res.status(400).send({ msg: 'Please make sure your database server is running' })
+        }
         if (error.code === 'P2002') {
             const target = error.meta?.target as string[] || []
             const msg = target.map(t => `o campo ${t} deve ser único`).join('\n')

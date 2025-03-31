@@ -1,10 +1,16 @@
 import fp from 'fastify-plugin'
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
-
-export default fp(async (fastify) => {
-    fastify.decorate('prisma', prisma)
+const db = new PrismaClient({
+    omit: {
+        user: {
+            password: true,            
+        }
+    }
 })
 
-export { prisma }
+export default fp(async (fastify) => {
+    fastify.decorate('prisma', db)
+})
+
+export { db }

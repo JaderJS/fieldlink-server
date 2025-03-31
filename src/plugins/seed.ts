@@ -1,4 +1,4 @@
-import { prisma } from "./prisma.plugins"
+import { db } from "./prisma.plugins"
 import { ptBR } from 'date-fns/locale'
 import { endOfMonth, format, parse, startOfMonth } from "date-fns"
 import { z } from "zod"
@@ -11,9 +11,9 @@ const DEFAULT_CONTENT = '<p>Caso necessário insira aqui informações úteis</p
 
 const main = async () => {
 
-    const transactions = await prisma.transactions.findMany()
+    const transactions = await db.transactions.findMany()
 
-    const dbGoogleTokens = await prisma.googleTokens.findFirst()
+    const dbGoogleTokens = await db.googleTokens.findFirst()
 
     const tokens = dbGoogleTokens?.tokens as Credentials | undefined
     if (!tokens) {
@@ -44,7 +44,7 @@ const main = async () => {
         })
         const { id: eventId } = await upsertEvent({ id: transaction.eventId, date: transaction.fromAt, title: transaction.title, description: slug })
 
-        await prisma.transactions.update({
+        await db.transactions.update({
             where: { id: transaction.id },
             data: {
                 eventId: eventId,

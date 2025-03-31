@@ -1,6 +1,6 @@
 import { Bank, Prisma } from "@prisma/client"
 
-const financesBank = (banks: Prisma.BankGetPayload<{ include: { transactions: true } }>[]) => {
+const financesBank = (banks: db.BankGetPayload<{ include: { transactions: true } }>[]) => {     
     return banks.map(({ transactions, ...bank }) => {
 
         const inputs = transactions.filter(({ billed, type }) => billed && type === 'INPUT')

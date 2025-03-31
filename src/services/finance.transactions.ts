@@ -1,4 +1,4 @@
-import transactions from "@/routes/transactions.routes"
+import transactions from "@/model/transaction/transactions.routes"
 import { Period, Prisma, Transactions } from "@prisma/client"
 import { differenceInDays, format, parse } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -33,7 +33,7 @@ type CalcFinances = {
     }
 }
 
-export const finances = (transactions: Transactions[], periods: Prisma.PeriodGetPayload<{ include: { transactions: true } }>[]): CalcFinances => {
+export const finances = (transactions: Transactions[], periods: db.PeriodGetPayload<{ include: { transactions: true } }>[]): CalcFinances => {
 
     const transactionsOnPeriods = periods
         .map(({ name, transactions: t }) => ({

@@ -142,7 +142,7 @@ model Transactions {
   description String?
   isDelete    Boolean         @default(false)
   hasNfe      Boolean         @default(false)
-  value       Float          
+  value       Float
   billed      Boolean         @default(false)
   createCuid  String
   updatedCuid String
@@ -161,8 +161,8 @@ model Transactions {
   updatedAt           DateTime @updatedAt
   parentTransactionId Int?
 
-  parentTransaction Transactions?  @relation("parentTransaction", fields: [parentTransactionId], references: [id])
-  subTransactions   Transactions[] @relation("parentTransaction")
+  rootTransaction   Transactions?  @relation("parentTransaction", fields: [parentTransactionId], references: [id])
+  groupTransactions Transactions[] @relation("parentTransaction")
 
   company   Company  @relation(fields: [companyId], references: [id])
   bank      Bank     @relation(fields: [bankId], references: [id])
@@ -485,3 +485,5 @@ model Group {
   stations Station[]
   channels ChannelDigitalOnChannelSchema[]
 }
+
+//NEW

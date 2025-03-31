@@ -39,6 +39,8 @@ export const applyFilters = async <T>(params: IApplyFiltersInput<T>,): Promise<T
         return undefined
     }
 
+    const whereConditions: object[] = []
+
     if (defaultFilters) {
         for (const [key] of Object.entries(defaultFilters)) {
             const { where } = await defaultFilters[key as keyof T]()
@@ -54,6 +56,10 @@ export const applyFilters = async <T>(params: IApplyFiltersInput<T>,): Promise<T
             })
             Object.assign(whereBuilder as object, where as object)
         }
+    }
+
+    if (whereConditions.length > 0) {
+        Object.assign(whereBuilder as object, { AND: whereConditions })
     }
 
     return whereBuilder

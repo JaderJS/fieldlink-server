@@ -7,7 +7,7 @@ import { Credentials } from "google-auth-library"
 export default fp(async function (server) {
     server.decorate("google", async (req: FastifyRequest, res: FastifyReply) => {
         try {
-            const dbGoogleTokens = await server.prisma.googleTokens.findFirst()
+            const dbGoogleTokens = await server.db.googleTokens.findFirst()
 
             const tokens = dbGoogleTokens?.tokens as Credentials | undefined
             if (!tokens) {

@@ -1,6 +1,7 @@
 import "fastify"
 import "@fastify/jwt"
 import { PrismaClient, Role } from "@prisma/client"
+import { db } from "@/plugins/prisma.plugins"
 
 declare module "fastify" {
     interface FastifyInstance {
@@ -10,7 +11,7 @@ declare module "fastify" {
         ) => Promise<void>,
         authorize: (allowedRoles: string[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>,
         google: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
-        prisma: PrismaClient
+        prisma: typeof db
     }
 }
 
