@@ -109,8 +109,8 @@ const upsertServiceNEW = async (req: FastifyRequest, res: FastifyReply) => {
     })
 
     await db.work.deleteMany({ where: { serviceId: service.id, id: { notIn: works.map(({ id }) => id) } } })
-    works.map(async (work) => {
 
+    for (const work of works) {
         const workMutation = await db.work.upsert({
             where: { id: work.id },
             create: {
@@ -131,42 +131,47 @@ const upsertServiceNEW = async (req: FastifyRequest, res: FastifyReply) => {
             }
         })
 
-        let orderMutation: Order | undefined = undefined
-        if (work.order) {
-            orderMutation = await db.order.upsert({
-                where: { id: work.order?.id },
+        if (!work.order) continue
+
+        const orderMutation = await db.order.upsert({
+            where: { id: work.order?.id },
+            create: {
+                total: work.total,
+                assignedCuid: req.user.cuid,
+                status: "INIT",
+                clientId: clientId,
+                work: { connect: { id: workMutation.id } }
+            },
+            update: {
+                total: work.total,
+                assignedCuid: req.user.cuid,
+                status: "INIT",
+                clientId: clientId,
+                work: { connect: { id: workMutation.id } }
+            }
+        })
+
+        await db.productsOnOrder.deleteMany({ where: { orderId: orderMutation.id, productId: { notIn: work.order.productsOnOrder?.map(({ id }) => id) } } })
+
+        for (const { id, price, quantity } of work.order.productsOnOrder ?? []) {
+
+            const normQuantity = Math.abs(quantity) * -1
+            const normPrice = Math.abs(price)
+
+            await db.productsOnOrder.upsert({
+                where: { productId_orderId: { orderId: orderMutation.id, productId: id } },
                 create: {
-                    total: work.total,
-                    assignedCuid: req.user.cuid,
-                    status: "INIT",
-                    clientId: clientId,
-                    work: { connect: { id: workMutation.id } }
+                    orderId: orderMutation.id,
+                    productId: id,
+                    price: normPrice,
+                    quantity: normQuantity,
                 },
                 update: {
-                    total: work.total,
-                    assignedCuid: req.user.cuid,
-                    status: "INIT",
-                    clientId: clientId,
-                    work: { connect: { id: workMutation.id } }
+                    price: normPrice,
+                    quantity: normQuantity,
                 }
             })
 
-            await db.productsOnOrder.deleteMany({ where: { orderId: orderMutation.id, productId: { notIn: work.order.productsOnOrder?.map(({ id }) => id) } } })
-            work.order.productsOnOrder?.map(async ({ id, price, quantity }) => {
-                await db.productsOnOrder.upsert({
-                    where: { productId_orderId: { orderId: orderMutation?.id!, productId: id } },
-                    create: {
-                        price,
-                        quantity,
-                        orderId: orderMutation?.id!,
-                        productId: id,
-                    },
-                    update: {
-                        price,
-                        quantity,
-                    }
-                })
-            })
         }
 
         await db.otherValues.deleteMany({ where: { works: { some: { id: work.id } }, id: { notIn: work.otherValues?.map(({ id }) => id) } } })
@@ -186,7 +191,7 @@ const upsertServiceNEW = async (req: FastifyRequest, res: FastifyReply) => {
             })
         })
 
-    })
+    }
 
     await db.transactions.deleteMany({ where: { serviceId: service.id, id: { notIn: payment.transactions.map(({ id }) => id) } } })
     payment.transactions.map(async ({ id, bankId, periodId, fromAt, value }, index) => {

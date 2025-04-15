@@ -17,6 +17,7 @@ const configSchema = z.object({
     GOOGLE_CLIENT_SECRET: z.string(),
 
     URL_FRONT: z.string(),
+    DATABASE_URL: z.string(),
 })
 
 const config = configSchema.parse(process.env)

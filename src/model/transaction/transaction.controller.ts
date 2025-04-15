@@ -19,7 +19,7 @@ const getTransactions = async (req: FastifyRequest, reply: FastifyReply) => {
             order: { include: { client: {} } },
             service: { include: { client: {} } },
         },
-        orderBy: [{ period: { order: 'desc' } }, { id: 'asc' },]
+        orderBy: [{ period: { order: 'desc' } }, { fromAt: 'desc' }],
     })
     return reply.send({ transactions })
 }

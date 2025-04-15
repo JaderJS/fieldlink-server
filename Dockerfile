@@ -1,4 +1,4 @@
-FROM node:20.11-alpine3.18 as build
+FROM node:22-alpine as build
 
 WORKDIR /src/
 
@@ -6,7 +6,7 @@ COPY package.json package-lock.json /src/
 
 COPY . /src/
 
-RUN  npm ci --silent
+RUN  npm ci
 
 USER node
 
