@@ -410,7 +410,7 @@ model StationDigital {
   stationId Int     @unique
   slot      Int
   colorCode Int
-  station   Station @relation(fields: [stationId], references: [id])
+  station   Station @relation(fields: [stationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 }
 
 model StationAnalog {
@@ -419,7 +419,7 @@ model StationAnalog {
   silent    TypeAnalogSilent
   encoder   Float
   decoder   Float
-  station   Station          @relation(fields: [stationId], references: [id])
+  station   Station          @relation(fields: [stationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 }
 
 model Equipment {

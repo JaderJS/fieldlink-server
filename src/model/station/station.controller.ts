@@ -63,8 +63,8 @@ const getStation = async (req: FastifyRequest, res: FastifyReply) => {
 }
 
 const upsertStation = async (req: FastifyRequest, res: FastifyReply) => {
-    const upsertStationSchema = z.object({
-        id: z.coerce.number().optional(),
+    const { id, content, isActive, latitude, longitude, propertyId, rx, tx, type, ...station } = z.object({
+        id: z.coerce.number().default(0),
         propertyId: z.coerce.number(),
         content: z.string(),
         rx: z.coerce.number(),
@@ -110,11 +110,42 @@ const upsertStation = async (req: FastifyRequest, res: FastifyReply) => {
             type,
             analog: analog?.silent === 'CSQ' ? { silent: analog?.silent } : analog
         }
+    }).parse(req.body)
+
+    await db.station.upsert({
+        where: { id },
+        create: {
+            property: { connect: { id: propertyId } },
+            content,
+            latitude,
+            longitude,
+            rx,
+            tx,
+        },
+        update: {
+            property: { connect: { id: propertyId } },
+            content,
+            latitude,
+            longitude,
+            rx,
+            tx,
+        }
     })
 
 }
 
+const deleteStation = async (req: FastifyRequest, res: FastifyReply) => {
+    const { stationId } = z.object({ stationId: z.coerce.number() }).parse(req.params)
+    await db.station.delete({
+        where: { id: stationId }
+    })
+
+    return res.status(204).send()
+}
+
 export {
     getStations,
-    getStation
+    getStation,
+    upsertStation,
+    deleteStation
 } 

@@ -1,6 +1,5 @@
 import { applyFilters } from "@/core/filter"
 import { db } from "@/plugins/prisma.plugins"
-import { db } from "@prisma/client"
 import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify"
 import { z } from "zod"
 

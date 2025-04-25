@@ -15,6 +15,8 @@ export const categoriesOfOrderFn = ({ orders }: { orders: Prisma.OrderGetPayload
         groupedOrders.set(status, [])
     })
 
+    console.log(JSON.stringify(orders, null, 2))
+
     orders.filter(({ work }) => work.length === 0).map((order) => {
         const isPayBeenCompleted = order.transactions.map(({ billed }) => billed).filter(billed => billed).length !== 0
         const categoryName: status = isPayBeenCompleted ? "BILLED" : order.status

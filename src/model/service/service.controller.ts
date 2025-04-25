@@ -2,19 +2,13 @@ import { db } from '@/plugins/prisma.plugins'
 import { Order, Prisma } from '@prisma/client'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
+import { categoriesOfServiceFn } from './service.services'
 
 const getServices = async (req: FastifyRequest, res: FastifyReply) => {
 
-    // const whereClausureSchema = z.object({
-    //     where: z.object({
-    //         isActive: z.boolean().optional()
-
-    //     })
-    // }) satisfies z.Schema<db.UserWhereInput>
-
-    const services = await db.service.findMany({
+    const servicesQuery = await db.service.findMany({
         include: {
-            transactions: {},
+            transactions: { include: {} },
             client: {},
             works: {
                 include: {
@@ -24,10 +18,12 @@ const getServices = async (req: FastifyRequest, res: FastifyReply) => {
         }
     })
 
+    const services = categoriesOfServiceFn({ services: servicesQuery })
+    
     return res.send({ services })
 }
 
-const getServiceNEW = async (req: FastifyRequest, res: FastifyReply) => {
+const getService = async (req: FastifyRequest, res: FastifyReply) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
     const serviceQuery = await db.service.findUniqueOrThrow({
         where: { id },
@@ -235,7 +231,7 @@ const deleteOneService = async (req: FastifyRequest, res: FastifyReply) => {
 
 export {
     getServices,
-    getServiceNEW,
+    getService,
     upsertServiceNEW,
     deleteOneService,
 }
