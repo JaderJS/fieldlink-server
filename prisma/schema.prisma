@@ -24,6 +24,65 @@ enum TypeTransaction {
   OUTPUT
 }
 
+model TransactionGroup {
+  id            Int          @id @default(autoincrement())
+  transactionId Int
+  transaction   Transactions @relation(fields: [transactionId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model Transactions {
+  id          Int             @id @default(autoincrement())
+  title       String
+  type        TypeTransaction
+  description String?
+  isDelete    Boolean         @default(false)
+  hasNfe      Boolean         @default(false)
+  value       Float
+  billed      Boolean         @default(false)
+  createCuid  String
+  updatedCuid String
+  companyId   Int
+  bankId      Int
+  periodId    Int
+  hasNotify   Boolean         @default(false)
+  serviceId   Int?
+  cartId      Int?
+  orderId     Int?
+  eventId     String?
+
+  content             String   @default("")
+  fromAt              DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  parentTransactionId Int?
+
+  rootTransaction   Transactions?  @relation("parentTransaction", fields: [parentTransactionId], references: [id])
+  groupTransactions Transactions[] @relation("parentTransaction")
+
+  group TransactionGroup[]
+
+  company   Company  @relation(fields: [companyId], references: [id])
+  bank      Bank     @relation(fields: [bankId], references: [id])
+  service   Service? @relation(fields: [serviceId], references: [id])
+  cart      Cart?    @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  period    Period   @relation(fields: [periodId], references: [id])
+  createdBy User     @relation("transactionsCreatedBy", fields: [createCuid], references: [cuid])
+  updatedBy User     @relation("transactionsUpdatedBy", fields: [updatedCuid], references: [cuid])
+
+  archives   Archives[]
+  categories CategoryTransaction[]
+}
+
+model OtherValues {
+  id     Int     @id @default(autoincrement())
+  name   String
+  price  Float
+  works  Work[]
+  orders Order[]
+  cart   Cart[]
+}
+
 model User {
   cuid      String   @id @default(cuid())
   email     String   @unique
@@ -117,15 +176,6 @@ model Work {
   otherValues OtherValues[]
 }
 
-model OtherValues {
-  id     Int     @id @default(autoincrement())
-  name   String
-  price  Float
-  works  Work[]
-  orders Order[]
-  cart   Cart[]
-}
-
 model Period {
   id           Int            @id @default(autoincrement())
   startTime    DateTime
@@ -135,46 +185,10 @@ model Period {
   transactions Transactions[]
 }
 
-model Transactions {
-  id          Int             @id @default(autoincrement())
-  title       String
-  type        TypeTransaction
-  description String?
-  isDelete    Boolean         @default(false)
-  hasNfe      Boolean         @default(false)
-  value       Float
-  billed      Boolean         @default(false)
-  createCuid  String
-  updatedCuid String
-  companyId   Int
-  bankId      Int
-  periodId    Int
-  hasNotify   Boolean         @default(false)
-  serviceId   Int?
-  cartId      Int?
-  orderId     Int?
-  eventId     String?
-
-  content             String   @default("")
-  fromAt              DateTime @default(now())
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  parentTransactionId Int?
-
-  rootTransaction   Transactions?  @relation("parentTransaction", fields: [parentTransactionId], references: [id])
-  groupTransactions Transactions[] @relation("parentTransaction")
-
-  company   Company  @relation(fields: [companyId], references: [id])
-  bank      Bank     @relation(fields: [bankId], references: [id])
-  service   Service? @relation(fields: [serviceId], references: [id])
-  cart      Cart?    @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  order     Order?   @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  period    Period   @relation(fields: [periodId], references: [id])
-  createdBy User     @relation("transactionsCreatedBy", fields: [createCuid], references: [cuid])
-  updatedBy User     @relation("transactionsUpdatedBy", fields: [updatedCuid], references: [cuid])
-
-  archives   Archives[]
-  categories CategoryTransaction[]
+model parentTransaction {
+  id                 Int @id @default(autoincrement())
+  n                  Int
+  firstTransactionId Int
 }
 
 model CategoryTransaction {

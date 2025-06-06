@@ -6,6 +6,7 @@
     "dev": "tsx watch --env-file .env src/server.ts",
     "calendar": "tsx --env-file .env src/plugins/calendar.ts",
     "seed": "tsx --env-file .env src/plugins/seed.ts",
+    "unseed": "tsx --env-file .env unseed.ts",
     "start": "tsx src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

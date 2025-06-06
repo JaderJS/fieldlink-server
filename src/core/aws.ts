@@ -1,8 +1,10 @@
-import { S3Client } from "@aws-sdk/client-s3"
+import { GetObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
 import config from "@/../config"
 import { Upload } from "@aws-sdk/lib-storage"
 import { MultipartFile } from "@fastify/multipart"
-
+import path from "node:path"
+import { pipeline } from "stream/promises"
+import fs from "fs"
 
 const s3 = new S3Client({
     region: config.REGION_MINIO,
@@ -70,6 +72,35 @@ export class Bucket {
             },
         }).done()
         return ({ path: key, pathUrl })
+    }
+
+    static downloadBucket = async (bucket: string, destination: string) => {
+        const list = await s3.send(new ListObjectsV2Command({
+            Bucket: bucket
+        }))
+
+        if (!list.Contents) return
+
+        for (const obj of list.Contents) {
+            console.log(obj)
+            if (!obj.Key) continue
+
+            const localFilePath = path.join(destination, obj.Key)
+            const dir = path.dirname(localFilePath)
+            await fs.promises.mkdir(dir, { recursive: true })
+
+            const { Body } = await s3.send(new GetObjectCommand({
+                Bucket: bucket,
+                Key: obj.Key
+            }))
+            if (!Body) continue
+            try {
+                await pipeline(Body as any, fs.createWriteStream(localFilePath))
+                console.log(`✅ Baixado: ${obj.Key}`)
+            } catch (err) {
+                console.error(`❌ Erro ao baixar ${obj.Key}:`, err)
+            }
+        }
     }
 
 }

@@ -64,6 +64,7 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
             isDelete: z.boolean().default(false),
             eventId: z.string().nullish(),
             serviceId: z.number().nullish(),
+            linkTo: z.coerce.number().nullish()
         })
         .transform(({ value, type, ...args }) => ({ ...args, type, value: type === 'OUTPUT' ? Math.abs(value) * -1 : Math.abs(value) }))
         .parse(req.body)

@@ -1,21 +1,33 @@
 services:
-  server:
-    hostname: fieldlink-server
-    build: .
+  # server:
+  #   hostname: fieldlink-server
+  #   build: .
+  #   environment:
+  #     - PORT=${PORT}
+  #     - REGION_MINIO=${REGION_MINIO}
+  #     - URL_MINIO=${URL_MINIO}
+  #     - URL_PUBLIC_MINIO=${URL_PUBLIC_MINIO}
+  #     - ACCESS_KEY_MINIO=${ACCESS_KEY_MINIO}
+  #     - SECRET_KEY_MINIO=${SECRET_KEY_MINIO}
+  #     - URL_MONGO=${URL_MONGO}
+  #     - GOOGLE_KEY=${GOOGLE_KEY}
+  #     - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+  #     - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+  #     - URL_FRONT=${URL_FRONT}
+  #     - KEY_TOKEN=${KEY_TOKEN}
+  #     - DATABASE_URL=${DATABASE_URL}
+  #   ports:
+  #     - "${PORT}:3333"
+  #   command: npm run start
+  db:
+    image: postgres:15.3-alpine
+    container_name: fieldlink-db
     environment:
-      - PORT=${PORT}
-      - REGION_MINIO=${REGION_MINIO}
-      - URL_MINIO=${URL_MINIO}
-      - URL_PUBLIC_MINIO=${URL_PUBLIC_MINIO}
-      - ACCESS_KEY_MINIO=${ACCESS_KEY_MINIO}
-      - SECRET_KEY_MINIO=${SECRET_KEY_MINIO}
-      - URL_MONGO=${URL_MONGO}
-      - GOOGLE_KEY=${GOOGLE_KEY}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - URL_FRONT=${URL_FRONT}
-      - KEY_TOKEN=${KEY_TOKEN}
-      - DATABASE_URL=${DATABASE_URL}
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 6t666GegibIkQU8eOAR00E9qudLG4y7p
+      POSTGRES_DB: fieldlink-db
+    restart: no
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
     ports:
-      - "${PORT}:3333"
-    command: npm run start
+      - "5432:5432"
