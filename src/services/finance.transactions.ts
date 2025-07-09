@@ -1,4 +1,4 @@
-import transactions from "@/model/transaction/transactions.routes"
+import transactions from "@/models/transaction/transactions.routes"
 import { Period, Prisma, Transactions } from "@prisma/client"
 import { differenceInDays, format, parse } from "date-fns"
 import { ptBR } from "date-fns/locale"

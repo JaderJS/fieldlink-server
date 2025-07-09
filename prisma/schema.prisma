@@ -19,6 +19,29 @@ enum Role {
   ROOT
 }
 
+model User {
+  cuid      String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  nickname  String   @unique
+  avatarUrl String
+  role      Role
+  password  String
+  isEnable  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  myCompany             Company[]
+  myBanks               Bank[]
+  myTransactionsCreated Transactions[] @relation("transactionsCreatedBy")
+  myTransactionsUpdated Transactions[] @relation("transactionsUpdatedBy")
+
+  myArchives        Archives[] @relation("ownerArchives")
+  myCreatedArchives Archives[] @relation("createdArchives")
+  myUpdatedArchives Archives[] @relation("updatedArchives")
+  myDailies         Daily[]
+}
+
 enum TypeTransaction {
   INPUT
   OUTPUT
@@ -61,53 +84,14 @@ model Transactions {
 
   group TransactionGroup[]
 
-  company   Company  @relation(fields: [companyId], references: [id])
-  bank      Bank     @relation(fields: [bankId], references: [id])
-  service   Service? @relation(fields: [serviceId], references: [id])
-  cart      Cart?    @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  order     Order?   @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  period    Period   @relation(fields: [periodId], references: [id])
-  createdBy User     @relation("transactionsCreatedBy", fields: [createCuid], references: [cuid])
-  updatedBy User     @relation("transactionsUpdatedBy", fields: [updatedCuid], references: [cuid])
+  company   Company @relation(fields: [companyId], references: [id])
+  bank      Bank    @relation(fields: [bankId], references: [id])
+  period    Period  @relation(fields: [periodId], references: [id])
+  createdBy User    @relation("transactionsCreatedBy", fields: [createCuid], references: [cuid])
+  updatedBy User    @relation("transactionsUpdatedBy", fields: [updatedCuid], references: [cuid])
 
   archives   Archives[]
   categories CategoryTransaction[]
-}
-
-model OtherValues {
-  id     Int     @id @default(autoincrement())
-  name   String
-  price  Float
-  works  Work[]
-  orders Order[]
-  cart   Cart[]
-}
-
-model User {
-  cuid      String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  nickname  String   @unique
-  avatarUrl String
-  role      Role
-  password  String
-  isEnable  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  myCompany             Company[]
-  myBanks               Bank[]
-  myTransactionsCreated Transactions[] @relation("transactionsCreatedBy")
-  myTransactionsUpdated Transactions[] @relation("transactionsUpdatedBy")
-  myProductsCreated     Product[]      @relation("productsCreatedBy")
-  myProductsUpdated     Product[]      @relation("productsUpdatedBy")
-  myPurchases           Cart[]
-
-  myArchives                   Archives[]            @relation("ownerArchives")
-  myCreatedArchives            Archives[]            @relation("createdArchives")
-  myUpdatedArchives            Archives[]            @relation("updatedArchives")
-  myUpdatedProductPriceHistory ProductPriceHistory[]
-  myDailies                    Daily[]
 }
 
 model GoogleTokens {
@@ -132,7 +116,6 @@ model Archives {
   createdBy User @relation("createdArchives", fields: [createdCuid], references: [cuid])
   updatedBy User @relation("updatedArchives", fields: [updatedCuid], references: [cuid])
 
-  services    Work[]
   transaction Transactions[]
   equipments  Equipment[]
 }
@@ -142,38 +125,6 @@ enum ServiceType {
   PENDING
   FINISHED
   DROPPED
-}
-
-model Service {
-  id        Int         @id @default(autoincrement())
-  name      String
-  content   String
-  status    ServiceType
-  isActive  Boolean     @default(true)
-  clientId  Int
-  startTime DateTime
-  endTime   DateTime
-
-  works        Work[]
-  transactions Transactions[]
-  client       Client         @relation(fields: [clientId], references: [id])
-}
-
-model Work {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String
-  startTime DateTime
-  endTime   DateTime
-  serviceId Int
-  total     Float
-  orderId   Int?
-
-  order    Order?     @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  service  Service    @relation(fields: [serviceId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  archives Archives[]
-
-  otherValues OtherValues[]
 }
 
 model Period {
@@ -205,9 +156,9 @@ enum ProductDiscountType {
 }
 
 model Supplier {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  carts Cart[]
+  id        Int    @id @default(autoincrement())
+  name      String @unique
+  purchases Cart[]
 }
 
 model Client {
@@ -215,37 +166,8 @@ model Client {
   name     String
   property String @default("")
 
-  properties Property[]
   orders     Order[]
-  services   Service[]
-}
-
-model Cart {
-  id           Int             @id @default(autoincrement())
-  total        Float
-  status       OrderStatusType
-  assignedCuid String
-  supplierId   Int
-  createdAt    DateTime        @default(now())
-  isActive     Boolean         @default(true)
-
-  supplier       Supplier         @relation(fields: [supplierId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  assignedBy     User             @relation(fields: [assignedCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
-  otherValues    OtherValues[]
-  transaction    Transactions[]
-  productsOnCart ProductsOnCart[]
-}
-
-model ProductsOnCart {
-  cartId    Int
-  productId Int
-  quantity  Int
-  price     Float
-
-  product Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  cart    Cart    @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-
-  @@id([cartId, productId])
+  properties Property[]
 }
 
 enum TypeProduct {
@@ -255,87 +177,10 @@ enum TypeProduct {
   g
 }
 
-model Product {
-  id            Int                 @id @default(autoincrement())
-  name          String
-  pictureUrl    String
-  description   String?
-  price         Float
-  discountType  ProductDiscountType
-  discountValue Float               @default(0)
-  stock         Int
-  CategoryId    Int
-  unity         TypeProduct
-  priceFn       String?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  createCuid    String
-  updatedCuid   String
-
-  category  ProductCategory @relation(fields: [CategoryId], references: [id])
-  createdBy User            @relation("productsCreatedBy", fields: [createCuid], references: [cuid])
-  updatedBy User            @relation("productsUpdatedBy", fields: [updatedCuid], references: [cuid])
-
-  productsOnCart  ProductsOnCart[]
-  productsOnOrder ProductsOnOrder[]
-  priceHistory    ProductPriceHistory[]
-  equipments      Equipment[]
-}
-
-model ProductPriceHistory {
-  id          Int      @id @default(autoincrement())
-  productId   Int
-  costValue   Float
-  saleValue   Float
-  createdCuid String
-  createdAt   DateTime @default(now())
-
-  product   Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  createdBy User    @relation(fields: [createdCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
-}
-
 enum OrderStatusType {
   PROCESS
   INIT
   FINISHED
-}
-
-model Order {
-  id           Int             @id @default(autoincrement())
-  status       OrderStatusType
-  total        Float
-  assignedCuid String
-  createdAt    DateTime        @default(now())
-  clientId     Int
-
-  client          Client            @relation(fields: [clientId], references: [id], onUpdate: Cascade)
-  otherValues     OtherValues[]
-  productsOnOrder ProductsOnOrder[]
-  transactions    Transactions[]
-  work            Work[]
-}
-
-model ProductsOnOrder {
-  productId Int
-  orderId   Int
-  quantity  Int
-  price     Float
-
-  product Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  order   Order   @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-
-  @@id([productId, orderId])
-}
-
-model ProductCategory {
-  id               Int              @id @default(autoincrement())
-  name             String
-  slug             String
-  tags             String[]
-  parentCategoryId Int?             @unique
-  parent           ProductCategory? @relation("parentCategory", fields: [parentCategoryId], references: [id])
-  ProductCategory  ProductCategory? @relation("parentCategory")
-  products         Product[]
 }
 
 model Bank {
@@ -445,8 +290,6 @@ model Equipment {
   updatedAt  DateTime @updatedAt
   createdAt  DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id])
-
   channelSchema ChannelSchema[]
 
   archives Archives[]
@@ -500,4 +343,142 @@ model Group {
   channels ChannelDigitalOnChannelSchema[]
 }
 
+model Doc {
+  cuid      String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+
+  orders Order[]
+  works  Work[]
+}
+
 //NEW
+
+model CategoryOrder {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  order Order[]
+}
+
+model Order {
+  id         Int     @id @default(autoincrement())
+  title      String
+  total      Float
+  categoryId Int
+  clientId   Int
+  docCuid    String?
+
+  works Work[]
+  sales Sale[]
+
+  client   Client        @relation(fields: [clientId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  category CategoryOrder @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  doc      Doc?          @relation(fields: [docCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model Cart {
+  id             Int               @id @default(autoincrement())
+  total          Float
+  supplierId     Int
+  createdAt      DateTime
+  productsOnCart ProductsOnCarts[]
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model ProductsOnCarts {
+  cartId    Int
+  productId Int
+
+  cart    Cart   @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([cartId, productId])
+}
+
+model Sale {
+  id        Int      @id @default(autoincrement())
+  total     Float
+  orderId   Int
+  createdAt DateTime @default(now())
+
+  productsOnSale ProductsOnSales[]
+  works          Work[]
+  otherValues    OtherValues[]
+  order          Order            @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model ProductsOnSales {
+  saleId    Int
+  productId Int
+  quantity  Int
+  price     Float
+  sale      Sale    @relation(fields: [saleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([saleId, productId])
+}
+
+enum UnityProduct {
+  und
+  m
+  l
+  g
+}
+
+model Product {
+  id          Int          @id @default(autoincrement())
+  name        String
+  price       Float
+  cost        Float
+  stock       Int
+  unity       UnityProduct @default(und)
+  pictureUrl  String
+  description String?
+  createdAt   DateTime
+
+  categories     CategoryProduct[]
+  salesOnProduct ProductsOnSales[]
+  cartsOnProduct ProductsOnCarts[]
+  histories      HistoryProduct[]
+}
+
+model CategoryProduct {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+}
+
+model HistoryProduct {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  price     Float
+  cost      Float
+  stock     Int
+  createdAt DateTime @default(now())
+
+  product Product @relation(references: [id], fields: [productId], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model Work {
+  id      Int     @id @default(autoincrement())
+  total   Float
+  orderId Int
+  docCuid String?
+
+  order       Order         @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  doc         Doc?          @relation(fields: [docCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
+  sales       Sale[]
+  otherValues OtherValues[]
+}
+
+model OtherValues {
+  id    Int    @id @default(autoincrement())
+  name  String
+  price Float
+
+  works Work[]
+  sales Sale[]
+}

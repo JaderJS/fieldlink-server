@@ -19,6 +19,18 @@ services:
   #   ports:
   #     - "${PORT}:3333"
   #   command: npm run start
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=changemeplease123
+    volumes:
+      - ./minio:/data
+      - ./minio/config:/root/.minio
+    command: server /data --console-address ":9001"
   db:
     image: postgres:15.3-alpine
     container_name: fieldlink-db

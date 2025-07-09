@@ -21,7 +21,7 @@
     "@fastify/multipart": "^9.0.1",
     "@googleapis/calendar": "^9.8.0",
     "@paralleldrive/cuid2": "^2.2.2",
-    "@prisma/client": "^6.2.1",
+    "@prisma/client": "^6.11.1",
     "@types/node": "^22.7.4",
     "bcrypt": "^5.1.1",
     "date-fns": "^4.1.0",
@@ -41,6 +41,6 @@
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/luxon": "^3.4.2",
-    "prisma": "^6.3.1"
+    "prisma": "^6.11.1"
   }
 }
