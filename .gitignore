@@ -4,6 +4,7 @@
 /minio
 /data
 /assets
+/prisma/generated
 
 *.http
 *.env

@@ -6,7 +6,7 @@ import { z } from "zod"
 import { oauth2Client, scope } from "@/plugins/google"
 import { add } from "date-fns"
 import { db } from "@/plugins/prisma.plugins"
-import { db } from "@prisma/client"
+import { JsonObject } from "@prisma/client/runtime/library"
 
 const MAX_IMAGE_SIZE_UPLOAD = 1024 * 1024 * 4
 const MY_CUID = "cm6b5mkd80000mqdzjoeic94y"
@@ -48,27 +48,35 @@ const global = async (server: FastifyInstance) => {
         }
     })
     server.get(`/google`, async (req, res) => {
+        const redirectUrl = 'http://localhost:3000'
         const url = oauth2Client.generateAuthUrl({
             access_type: 'offline',
             scope,
-            prompt: 'consent'
+            prompt: 'consent',
+            state: encodeURIComponent(redirectUrl)
         })
         return res.redirect(url)
     })
+    
     server.get(`/google/redirect`, async (req, res) => {
-        const { code } = z.object({ code: z.string() }).parse(req.query)
+        const { code, state } = z.object({ code: z.string(), state: z.string().optional() }).parse(req.query)
         const { tokens } = await oauth2Client.getToken(code)
 
         oauth2Client.setCredentials(tokens)
 
-        const dbGoogleTokens = await db.googleTokens.findFirst()
-        if (dbGoogleTokens) {
-            await db.googleTokens.update({ where: { id: dbGoogleTokens.id }, data: { tokens: tokens as db.JsonObject } })
-        } else {
-            await db.googleTokens.create({ data: { tokens: tokens as db.JsonObject } })
-        }
+        await db.googleTokens.upsert({
+            where: { id: 1 },
+            create: {
+                tokens: tokens
+            },
+            update: {
+                tokens: tokens
+            }
+        })
 
-        return res.redirect(config.URL_FRONT)
+        const redirectUrl = decodeURIComponent(state || "http://localhost:3000");
+        console.log(redirectUrl)
+        return res.redirect(`${redirectUrl}?auth_success=true`)
     })
 
 }

@@ -1,0 +1,87 @@
+enum Role {
+  USER
+  ADMIN
+  ROOT
+}
+
+model User {
+  // id            String  @unique @default("x")
+  emailVerified Boolean @default(false)
+  image         String?
+
+  id      String   @id @default(cuid()) @map("cuid")
+  email     String   @unique
+  name      String
+  nickname  String   @unique
+  avatarUrl String
+  role      Role
+  password  String
+  isEnable  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  myCompany             Company[]
+  myBanks               Bank[]
+  myTransactionsCreated Transactions[] @relation("transactionsCreatedBy")
+  myTransactionsUpdated Transactions[] @relation("transactionsUpdatedBy")
+
+  myArchives        Archives[] @relation("ownerArchives")
+  myCreatedArchives Archives[] @relation("createdArchives")
+  myUpdatedArchives Archives[] @relation("updatedArchives")
+  myOrders          Order[]
+  myUpdatedDocs     Doc[]      @relation("updatedDocs")
+  myCreatedDocs     Doc[]      @relation("createdDocs")
+
+  myCreatedInstallments Installment[] @relation("createdInstallments")
+  myUpdatedInstallments Installment[] @relation("updatedInstallments")
+
+  sessions Session[]
+  accounts Account[]
+
+  // @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@map("verification")
+}

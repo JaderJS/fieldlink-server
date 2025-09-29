@@ -1,4 +1,4 @@
-import { google } from "googleapis"
+import { Auth, google } from "googleapis"
 import { add, } from 'date-fns'
 import { oauth2Client } from "./google"
 
@@ -19,6 +19,36 @@ type UpsertEvent = {
     date: Date
     title: string
     description?: string
+}
+
+const refreshTokenIfNeeded = async (oauthClient: Auth.OAuth2Client): Promise<void> => {
+    if (!oauthClient.credentials.refresh_token) {
+        throw new Error('No refresh token available')
+    }
+    try {
+        const { credentials } = await oauthClient.refreshAccessToken()
+        oauthClient.setCredentials(credentials)
+    } catch (error) {
+        console.error('Error refreshing access token:', error)
+        throw new Error('Failed to refresh access token')
+    }
+}
+
+const handleCalendarApiCall = async<T>(fn: () => Promise<T>, oauthClient: Auth.OAuth2Client): Promise<T> => {
+    try {
+        return await fn()
+    } catch (error: any) {
+        if (error.message.includes('No access, refresh token') ||
+            error.message.includes('invalid_grant') ||
+            error.code === 401) {
+
+            console.log('Token expirado ou inválido, tentando renovar...')
+            await refreshTokenIfNeeded(oauthClient)
+
+            return await fn()
+        }
+        throw error
+    }
 }
 
 const upsertEvent = async ({ id, date, title, description }: UpsertEvent) => {
@@ -76,29 +106,32 @@ export { upsertEvent }
 
 
 const createEvent = async ({ date, title, description }: CreateEvent) => {
-    const response = await calendar.events.insert({
-        calendarId: 'primary',
-        auth: oauth2Client,
-        requestBody: {
-            summary: title,
-            description: description || title,
-            start: {
-                dateTime: date.toISOString(),
-                timeZone: 'America/Cuiaba'
-            },
-            end: {
-                dateTime: date.toISOString(),
-                timeZone: 'America/Cuiaba'
-            },
-            reminders: {
-                useDefault: true
+    return handleCalendarApiCall(async () => {
+        const response = await calendar.events.insert({
+            calendarId: 'primary',
+            auth: oauth2Client,
+            requestBody: {
+                summary: title,
+                description: description || title,
+                start: {
+                    dateTime: date.toISOString(),
+                    timeZone: 'America/Cuiaba'
+                },
+                end: {
+                    dateTime: date.toISOString(),
+                    timeZone: 'America/Cuiaba'
+                },
+                reminders: {
+                    useDefault: true
+                }
             }
+        })
+
+        if (!response.data.id) {
+            throw new Error('Error created event')
         }
-    })
-    if (!response.data.id) {
-        throw new Error('Error created event')
-    }
-    return { id: response.data.id }
+        return { id: response.data.id }
+    }, oauth2Client)
 }
 
 const updateEvent = async ({ id, date, description, title }: Partial<CreateEvent> & { id: string }) => {

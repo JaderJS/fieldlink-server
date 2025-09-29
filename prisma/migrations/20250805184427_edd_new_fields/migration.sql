@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE "Order" ALTER COLUMN "updatedAt" DROP DEFAULT,
+ALTER COLUMN "updatedByCuid" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "Product" ALTER COLUMN "updatedAt" DROP DEFAULT,
+ALTER COLUMN "updatedByCuid" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "Work" ALTER COLUMN "updatedAt" DROP DEFAULT,
+ALTER COLUMN "updatedByCuid" DROP DEFAULT;

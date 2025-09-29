@@ -23,10 +23,18 @@ const getEquipments = async (req: FastifyRequest, res: FastifyReply) => {
     return res.send({ equipments })
 }
 
+const getEquipment = async (req: FastifyRequest, res: FastifyReply) => {
+    const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
+
+    const queryEquipment = await db.equipment.findUniqueOrThrow({ where: { id } })
+
+    return res.send({ equipment: queryEquipment })
+}
+
 const upsertEquipment = async (req: FastifyRequest, res: FastifyReply) => {
 
     const { id, sn, nickname, identifier, productId, insertInStations } = z.object({
-        id: z.coerce.number().default(0),
+        id: z.coerce.number().default(-1),
         sn: z.string(),
         nickname: z.string(),
         identifier: z.coerce.number(),
@@ -37,7 +45,7 @@ const upsertEquipment = async (req: FastifyRequest, res: FastifyReply) => {
     const equipment = await db.equipment.findFirst({ where: { OR: [{ sn }, { identifier }] } })
     if (!!equipment) {
         const slug = equipment.sn ? `${sn} registrado` : `${identifier} registrado`
-        return res.status(401).send({ msg: `Já existe outro equipamento com o ${slug}` })
+        return res.status(502).send({ msg: `Já existe outro equipamento com o ${slug}` })
     }
 
     await db.equipment.upsert({
@@ -94,6 +102,7 @@ const upsertChannel = async (req: FastifyRequest, res: FastifyReply) => {
 
 export {
     getEquipments,
+    getEquipment,
     upsertEquipment,
     deleteEquipment
 }

@@ -11,18 +11,18 @@ const getAllUsers = async (req: FastifyRequest, res: FastifyReply) => {
 
 const getUserByCuid = async (req: FastifyRequest, res: FastifyReply) => {
     const { cuid } = z.object({ cuid: z.string().cuid2() }).parse(req.params)
-    const user = await db.user.findUnique({ where: { cuid } })
+    const user = await db.user.findUnique({ where: { id: cuid } })
     return res.send({ user })
 }
 
 const getUserByToken = async (req: FastifyRequest, res: FastifyReply) => {
-    const token = req.headers.authorization?.split(" ")[1]
-    if (!token) {
-        return res.status(400).send({ msg: 'No token send' })
-    }
+    // const token = req.headers.authorization?.split(" ")[1]
+    // if (!token) {
+    //     return res.status(400).send({ msg: 'No token send' })
+    // }
 
-    const { cuid, ...payload } = decode(token) as JwtPayload & { email?: string, _id?: string }
-    const user = await db.user.findUnique({ where: { cuid } })
+    // const { cuid, ...payload } = decode(token) as JwtPayload & { email?: string, _id?: string }
+    const user = await db.user.findFirstOrThrow()
     return res.send({ user })
 }
 
@@ -40,7 +40,7 @@ const createOneUser = async (req: FastifyRequest, res: FastifyReply) => {
 
 const deleteOneUser = async (req: FastifyRequest, res: FastifyReply) => {
     const { cuid } = z.object({ cuid: z.string().cuid2() }).parse(req.params)
-    const user = await db.user.update({ where: { cuid }, data: { isEnable: false } })
+    const user = await db.user.update({ where: { id: cuid }, data: { isEnable: false } })
     return res.send({ msg: 'User deleted', user })
 }
 

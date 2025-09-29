@@ -1,0 +1,14 @@
+model Bank {
+    id                         Int      @id @default(autoincrement())
+    name                       String
+    pix                        String
+    limitBankingMovements      Float    @default(0)
+    limitBankingMovementsMonth Float    @default(0)
+    ownerCuid                  String
+    updatedBy                  String
+    createdAt                  DateTime @default(now())
+    updatedAt                  DateTime @updatedAt
+
+    owner        User           @relation(fields: [ownerCuid], references: [id])
+    transactions Transactions[]
+}

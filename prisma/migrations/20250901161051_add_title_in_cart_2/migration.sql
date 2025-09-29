@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Cart" ALTER COLUMN "title" DROP DEFAULT;

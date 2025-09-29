@@ -1,0 +1,91 @@
+enum TypeTransaction {
+  INPUT
+  OUTPUT
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  PIX
+  BOLETO
+  TED
+  CASH
+  OTHER
+  NOT_DECLARED
+}
+
+model Transactions {
+  id          Int             @id @default(autoincrement())
+  title       String
+  type        TypeTransaction
+  isDelete    Boolean         @default(false)
+  hasNfe      Boolean         @default(false)
+  total       Int             @default(0)
+  createCuid  String
+  updatedCuid String
+  companyId   Int
+  bankId      Int
+  hasNotify   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  content Json?
+  cartId  Int?
+  orderId Int?
+  eventId String?
+
+  company   Company @relation(fields: [companyId], references: [id])
+  bank      Bank    @relation(fields: [bankId], references: [id])
+  createdBy User    @relation("transactionsCreatedBy", fields: [createCuid], references: [id])
+  updatedBy User    @relation("transactionsUpdatedBy", fields: [updatedCuid], references: [id])
+
+  order        Order?
+  cart         Cart?
+  archives     Archives[]
+  categories   CategoryTransaction[]
+  installments Installment[]
+}
+
+model CategoryTransaction {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  transactions Transactions[]
+}
+
+model Installment {
+  id                 Int               @id @default(autoincrement())
+  value              Int
+  status             InstallmentStatus @default(PENDING)
+  installmentsNumber Int
+  paymentMethod      PaymentMethod     @default(NOT_DECLARED)
+  billed             Boolean           @default(false)
+  periodId           Int
+  transactionId      Int
+  dueAt              DateTime
+  updatedAt          DateTime          @updatedAt
+  createdAt          DateTime          @default(now())
+  createdCuid        String
+  updatedCuid        String
+
+  paidAt            DateTime?
+  installmentsTotal Int?
+  paymentReference  String?
+
+  period      Period       @relation(fields: [periodId], references: [id])
+  transaction Transactions @relation(fields: [transactionId], references: [id])
+  createdBy   User         @relation("createdInstallments", fields: [createdCuid], references: [id])
+  updatedBy   User         @relation("updatedInstallments", fields: [updatedCuid], references: [id])
+
+  archives Archives[]
+
+  // @@unique([transactionId, installmentsNumber])
+  @@map("installments")
+}

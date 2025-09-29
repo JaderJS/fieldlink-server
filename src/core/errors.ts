@@ -23,14 +23,14 @@ const errorHandler: FastifyInstance['errorHandler'] = (error, req, res) => {
         const msg = `[MONGOOSE] - ${error.message} `
         return res.code(500).send(msg)
     }
-    if (error instanceof ZodError) {
-        const formattedErrors = error.errors.map(e => ({
-            message: e.message,
-            path: e.path.join('.'),
-        }))
-        const msg = `[ZOD] - Validação falhou`
-        return res.code(400).send({ msg, errors: formattedErrors })
-    }
+    // if (error instanceof ZodError) {
+    //     const formattedErrors = error._zod.map(e => ({
+    //         message: e.message,
+    //         path: e.path.join('.'),
+    //     }))
+    //     const msg = `[ZOD] - Validação falhou`
+    //     return res.code(400).send({ msg, errors: formattedErrors })
+    // }
     return res.code(500).send({ msg: error.message })
 }
 

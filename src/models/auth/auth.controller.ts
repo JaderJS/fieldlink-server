@@ -6,8 +6,8 @@ import config from '@/../../config'
 import { db } from '@/plugins/prisma.plugins'
 
 const login = async (req: FastifyRequest, res: FastifyReply) => {
-    const { email, password } = z.object({ email: z.string().email(), password: z.string().min(3) }).parse(req.body)
-    const user = await db.user.findUnique({ where: { email }, select: { cuid: true, email: true, nickname: true, password: true, avatarUrl: true } })
+    const { email, password } = z.object({ email: z.email(), password: z.string().min(3) }).parse(req.body)
+    const user = await db.user.findUnique({ where: { email }, select: { id: true, email: true, nickname: true, password: true, avatarUrl: true } })
     if (!user) {
         return res.status(404).send({ msg: 'User not founded' })
     }

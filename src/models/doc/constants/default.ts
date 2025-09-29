@@ -1,11 +1,1 @@
-export const DEFAULT = `
-<p>Welcome to FieldLink!</p>
-<p>FieldLink is a powerful tool designed to help you manage your field operations efficiently.</p>
-<p>With FieldLink, you can:</p>
-<ul>
-  <li>Track your field operations in real-time</li>
-  <li>Manage your team and resources effectively</li>
-  <li>Analyze your field data to make informed decisions</li>
-  <li>Collaborate with your team seamlessly</li>
-</ul>
-`
+export const DEFAULT = { "type": "doc", "content": [{ "type": "heading", "attrs": { "level": 1 }, "content": [{ "type": "text", "text": "Bem vindo a plataforma Fieldlink" }] }, { "type": "paragraph", "content": [{ "type": "text", "text": "Fieldlink é uma ferramenta desenvolvida para lhe ajudar a genrenciar suas operações com maior eficiência!" }] }, { "type": "paragraph" }, { "type": "paragraph", "content": [{ "type": "text", "text": "With Fieldlink, você pode:" }] }, { "type": "bulletList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Acompanhar suas operações em tempo real;" }] }] }, { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Gerenciar seu time e recursos;" }] }] }, { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Analizar suas informações para decisões importantes;" }] }] }, { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Colaborar com seu time." }] }] }] }, { "type": "paragraph" }, { "type": "paragraph" }] }

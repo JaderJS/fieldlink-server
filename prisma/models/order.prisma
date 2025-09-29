@@ -1,0 +1,149 @@
+model CategoryOrder {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  order Order[]
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  title         String
+  total         Int
+  discount      Int      @default(0)
+  categoryId    Int
+  clientId      Int
+  flag          String   @default("Desconhecido")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  updatedByCuid String
+  otherValues   Json[]   @default([])
+  works         Work[]
+  sales         Sale[]
+  transactionId Int      @unique
+
+  // transactions Transactions[]
+  content String?
+  docCuid String?
+  date    Json?
+
+  transaction Transactions  @relation(fields: [transactionId], references: [id], onUpdate: Cascade)
+  updatedBy   User          @relation(fields: [updatedByCuid], references: [id], onUpdate: Cascade)
+  client      Client        @relation(fields: [clientId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  category    CategoryOrder @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  doc         Doc?          @relation(fields: [docCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model Cart {
+  id            Int      @id @default(autoincrement())
+  title         String
+  total         Int
+  supplierId    Int
+  otherValues   Json[]   @default([])
+  createdAt     DateTime @default(now())
+  transactionId Int      @unique
+
+  productsOnCart ProductsOnCarts[]
+  transaction    Transactions      @relation(fields: [transactionId], references: [id], onUpdate: Cascade)
+  supplier       Supplier          @relation(fields: [supplierId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model ProductsOnCarts {
+  cartId    Int
+  productId Int
+  quantity  Int
+  price     Float
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([cartId, productId])
+}
+
+model Sale {
+  id          Int      @id @default(autoincrement())
+  total       Float
+  orderId     Int
+  otherValues Json[]   @default([])
+  createdAt   DateTime @default(now())
+
+  productsOnSale ProductsOnSales[]
+  works          Work[]
+  // otherValues    OtherValues[]
+  order          Order             @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model ProductsOnSales {
+  saleId    Int
+  productId Int
+  quantity  Int
+  price     Float
+  sale      Sale    @relation(fields: [saleId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([saleId, productId])
+}
+
+enum UnityProduct {
+  und
+  m
+  l
+  g
+}
+
+model Product {
+  id            Int          @id @default(autoincrement())
+  name          String
+  price         Float
+  cost          Float
+  stock         Int
+  unity         UnityProduct @default(und)
+  pictureUrl    String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  updatedByCuid String
+  description   String?
+
+  equipments     Equipment[]
+  categories     CategoryProduct[]
+  salesOnProduct ProductsOnSales[]
+  cartsOnProduct ProductsOnCarts[]
+  histories      HistoryProduct[]
+}
+
+model CategoryProduct {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+}
+
+model HistoryProduct {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  price     Float
+  cost      Float
+  stock     Int
+  createdAt DateTime @default(now())
+
+  product Product @relation(references: [id], fields: [productId], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model Work {
+  id            Int      @id @default(autoincrement())
+  title         String
+  total         Float
+  orderId       Int
+  flag          String   @default("Desconhecido")
+  otherValues   Json[]   @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  updatedByCuid String
+
+  docCuid  String?
+  content  Json?
+  archives Json[]  @default([])
+  date     Json?
+
+  order Order  @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  doc   Doc?   @relation(fields: [docCuid], references: [cuid], onUpdate: Cascade, onDelete: Cascade)
+  sales Sale[]
+}

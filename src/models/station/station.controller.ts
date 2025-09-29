@@ -1,5 +1,5 @@
 import { applyFilters } from "@/core/filter"
-import { whereConstructor } from "@/core/prisma.where"
+import { makeFilters, whereConstructor } from "@/core/prisma.where"
 import { db } from "@/plugins/prisma.plugins"
 import { Prisma } from "@prisma/client"
 import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify"
@@ -7,45 +7,47 @@ import { z } from "zod"
 
 const getStations = async (req: FastifyRequest, res: FastifyReply) => {
 
-    const { margin = 25E3 / 2, ...query } = z.object({
-        rx: z.coerce.number().optional(),
-        tx: z.coerce.number().optional(),
-        margin: z.coerce.number().default(25E3 / 2),
-        isActive: z.string().optional().transform((val) => val === "true" ? true : val === "false" ? false : undefined),
-    }).parse(req.query)
+    const filtersSchema = z.object({
+        excludeStationId: z.coerce.number().optional(),
+        frequency: z.object({
+            rx: z.coerce.number().optional(),
+            tx: z.coerce.number().optional(),
+            renge: z.coerce.number().default(25E3),
+        }).optional(),
+    }).optional()
 
-    const where = whereConstructor<Prisma.StationWhereInput>({
-        query: query as { [key: string]: unknown },
-        filters: {
-            rx: ({ filter }) => ({
-                where: {
-                    AND: [
-                        { rx: { lte: Number(filter) + margin } },
-                        { rx: { gt: Number(filter) - margin } },
-                    ]
-                }
-            }),
-            tx: ({ filter }) => ({
-                where: {
-                    AND: [
-                        { tx: { lte: Number(filter) + margin } },
-                        { tx: { gt: Number(filter) - margin } },
-                    ]
-                }
-            }),
-            isActive: ({ filter }) => ({
-                where: {
-                    isActive: Boolean(filter)
-                }
-            })
+    const query = filtersSchema.parse((req.query as any)?.filters!)
+    const margin = query?.frequency?.renge ?? 25E3
+
+    const filtersMap = makeFilters(filtersSchema)<Prisma.StationWhereInput>()({
+        excludeStationId: ({ filter }) => ({ id: { not: filter } }), // filter: number
+        frequency: {
+            op: "OR",
+            fields: {
+                rx: ({ filter }) => ({ rx: { lte: filter + margin, gt: filter - margin } }), // filter: number
+                tx: ({ filter }) => ({ tx: { lte: filter + margin, gt: filter - margin } }), // filter: number
+            },
         },
-    })
+    });
 
-    console.log(where)
+
+    const where = whereConstructor({
+        schema: filtersSchema,
+        filters: filtersMap,
+        query: query,
+    }) as Prisma.StationWhereInput | undefined
+
+    // console.log(query, JSON.stringify(where, null, 2))
 
     const stationsQuery = await db.station.findMany({
         where: where,
-        include: { analog: {}, digital: {}, equipments: {}, groups: {}, property: {} },
+        include: {
+            analog: true,
+            digital: true,
+            equipments: { include: { product: true } },
+            groups: true,
+            property: true
+        },
         orderBy: { id: 'asc' }
     })
 
@@ -57,22 +59,22 @@ const getStation = async (req: FastifyRequest, res: FastifyReply) => {
 
     const stationQuery = await db.station.findUniqueOrThrow({
         where: { id },
-        include: { analog: {}, digital: {}, equipments: {}, groups: {}, property: {} },
+        include: { analog: true, digital: true, equipments: { include: { product: true } }, groups: {}, property: {} },
     })
     return res.send({ station: stationQuery })
 }
 
 const upsertStation = async (req: FastifyRequest, res: FastifyReply) => {
-    const { id, content, isActive, latitude, longitude, propertyId, rx, tx, type, ...station } = z.object({
-        id: z.coerce.number().default(0),
+    const { id, content, isActive, latitude, longitude, propertyId, rx, tx, mode, ...station } = z.object({
+        id: z.coerce.number().default(-1),
         propertyId: z.coerce.number(),
-        content: z.string(),
+        content: z.record(z.string(), z.any()).optional(),
         rx: z.coerce.number(),
         tx: z.coerce.number(),
         latitude: z.coerce.number(),
         longitude: z.coerce.number(),
         isActive: z.boolean(),
-        type: z.enum(['digital', 'analog']),
+        mode: z.enum(['digital', 'analog']),
         digital: z.object({
             id: z.coerce.number().optional(),
             slot: z.coerce.number().min(0).max(2),
@@ -101,22 +103,23 @@ const upsertStation = async (req: FastifyRequest, res: FastifyReply) => {
                 }
             }
         }).optional()
-    }).transform(({ analog, digital, type, ...data }, ctx) => {
-        if (type === 'digital') {
-            return { ...data, type, digital }
+    }).transform(({ analog, digital, mode, ...data }, ctx) => {
+        if (mode === 'digital') {
+            return { ...data, mode, digital }
         }
         return {
             ...data,
-            type,
+            mode,
             analog: analog?.silent === 'CSQ' ? { silent: analog?.silent } : analog
         }
     }).parse(req.body)
 
-    await db.station.upsert({
+    const stationMutation = await db.station.upsert({
         where: { id },
         create: {
             property: { connect: { id: propertyId } },
-            content,
+            content: "",
+            isActive,
             latitude,
             longitude,
             rx,
@@ -124,14 +127,15 @@ const upsertStation = async (req: FastifyRequest, res: FastifyReply) => {
         },
         update: {
             property: { connect: { id: propertyId } },
-            content,
+            content: "",
+            isActive,
             latitude,
             longitude,
             rx,
             tx,
         }
     })
-
+    return res.send({ station: stationMutation })
 }
 
 const deleteStation = async (req: FastifyRequest, res: FastifyReply) => {

@@ -10,47 +10,44 @@ import { createId } from '@paralleldrive/cuid2'
 const MAX_IMAGE_SIZE_ARCHIVE = 1024 * 1024 * 4
 
 const getArchives = async (req: FastifyRequest, res: FastifyReply) => {
-    const query = z
-        .object({
-            filters: z.object({
-                transaction: z.object({
-                    id: z.coerce.number()
-                }).optional()
+    const query = z.object({
+        filters: z.object({
+            transaction: z.object({
+                id: z.coerce.number()
             }).optional()
         }).optional()
+    }).optional()
         .parse(req.query)
+
 
     if (!query) {
         const archivesQuery = await db.archives.findMany()
         return res.send({ archives: archivesQuery })
     }
     const archivesQuery = await db.archives.findMany({ where: { transaction: { some: { id: query.filters?.transaction?.id } } } })
-
     return res.send({ archives: archivesQuery })
 }
 
 const upsertArchive = async (req: FastifyRequest, res: FastifyReply) => {
-    const { cuid, title, path, pathUrl, size, type, transactionConnect, isDelete } = z
+
+    const user = req.user
+    const { cuid, title, path, pathUrl, size, type, connect, isDelete } = z
         .object({
             cuid: z.string().default(""),
             title: z.string(),
             path: z.string(),
-            pathUrl: z.string().url(),
+            pathUrl: z.url(),
             type: z.string(),
             size: z.string(),
-            transactionId: z.coerce.number().optional(),
-            isDelete: z.boolean().optional()
+            isDelete: z.boolean().optional(),
+            connect: z.object({
+                transaction: z.object({
+                    id: z.coerce.number()
+                }).optional()
+            }).optional()
         })
-        .transform(({ transactionId, ...prev }) => ({
-            ...prev,
-            ...(transactionId ? { transactionConnect: { connect: { id: transactionId } } } : undefined)
-        }))
         .parse(req.body)
 
-    if (isDelete) {
-        await db.archives.delete({ where: { cuid } })
-        return res.status(204).send()
-    }
 
     await db.archives.upsert({
         where: { cuid },
@@ -60,10 +57,10 @@ const upsertArchive = async (req: FastifyRequest, res: FastifyReply) => {
             size,
             type,
             title,
-            createdCuid: req.user.cuid,
-            updatedCuid: req.user.cuid,
-            ownerCuid: req.user.cuid,
-            transaction: transactionConnect
+            createdCuid: user.cuid,
+            updatedCuid: user.cuid,
+            ownerCuid: user.cuid,
+            transaction: !!connect?.transaction?.id ? { connect: { id: connect.transaction?.id } } : undefined
         },
         update: {
             path,
@@ -71,8 +68,7 @@ const upsertArchive = async (req: FastifyRequest, res: FastifyReply) => {
             size,
             type,
             title,
-            updatedCuid: req.user.cuid,
-            transaction: transactionConnect
+            updatedCuid: user.cuid,
         }
     })
 
@@ -97,8 +93,28 @@ const uploadArchive = async (req: FastifyRequest, res: FastifyReply) => {
 
         return res.send({ path: upload.path, pathUrl, size, type: data.mimetype })
     } catch (error) {
+        console.log(error)
         return res.status(500).send({ msg: 'Ops! You need attempt now' })
     }
 }
 
-export { getArchives, upsertArchive, uploadArchive }
+
+const deleteArchive = async (req: FastifyRequest, res: FastifyReply) => {
+
+    const user = req.user
+    const { cuid } = z
+        .object({
+            cuid: z.string()
+        })
+        .parse(req.params)
+
+
+    await db.archives.delete({
+        where: { cuid },
+    })
+
+    return res.status(200).send()
+
+}
+
+export { getArchives, upsertArchive, uploadArchive, deleteArchive }

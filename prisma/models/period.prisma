@@ -1,0 +1,9 @@
+model Period {
+  id           Int            @id @default(autoincrement())
+  startTime    DateTime
+  endTime      DateTime
+  name         String         @unique
+  order        Int            @default(autoincrement())
+  // transactions Transactions[]
+  installments Installment[]
+}

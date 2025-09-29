@@ -1,0 +1,131 @@
+model Client {
+  id       Int    @id @default(autoincrement())
+  name     String
+  property String
+
+  orders     Order[]
+  properties Property[]
+}
+
+model Equipment {
+  id         Int      @id @default(autoincrement())
+  nickname   String
+  sn         String   @unique
+  identifier Int      @unique
+  productId  Int
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+
+  channelSchema ChannelSchema[]
+
+  archives Archives[]
+  stations Station[]
+}
+
+model Property {
+  id       Int    @id @default(autoincrement())
+  title    String
+  city     String @default("Desconhecido")
+  clientId Int
+
+  updateAt DateTime @updatedAt
+  createAt DateTime @default(now())
+
+  client  Client    @relation(fields: [clientId], references: [id])
+  stations Station[]
+
+}
+
+enum TypeAnalogSilent {
+  CSQ
+  TPL
+  DPL_N
+  DPL_I
+}
+
+model Station {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  content    String
+  rx         Float
+  tx         Float
+  latitude   Float
+  longitude  Float
+  isActive   Boolean  @default(false)
+  updateAt   DateTime @updatedAt
+  createAt   DateTime @default(now())
+
+  property                 Property                        @relation(fields: [propertyId], references: [id])
+  digital                  StationDigital?
+  analog                   StationAnalog?
+  equipments               Equipment[]
+  groups                   Group[]
+  channelsAnalogOnStation  ChannelAnalogOnChannelSchema[]
+  channelsDigitalOnStation ChannelDigitalOnChannelSchema[]
+}
+
+model StationDigital {
+  id        Int     @id @default(autoincrement())
+  stationId Int     @unique
+  slot      Int
+  colorCode Int
+  station   Station @relation(fields: [stationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model StationAnalog {
+  id        Int              @id @default(autoincrement())
+  stationId Int              @unique
+  silent    TypeAnalogSilent
+  encoder   Float
+  decoder   Float
+  station   Station          @relation(fields: [stationId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+}
+
+model ChannelSchema {
+  id      Int    @id @default(autoincrement())
+  title   String
+  content String
+
+  equipments      Equipment[]
+  channelsAnalog  ChannelAnalogOnChannelSchema[]
+  channelsDigital ChannelDigitalOnChannelSchema[]
+}
+
+model ChannelDigitalOnChannelSchema {
+  channelSchemaId Int
+  stationId       Int
+  groupId         Int
+  slot            Int
+  order           Int
+
+  schema  ChannelSchema @relation(fields: [channelSchemaId], references: [id])
+  station Station       @relation(fields: [stationId], references: [id])
+  group   Group         @relation(fields: [groupId], references: [id])
+
+  @@id([channelSchemaId, stationId, groupId])
+}
+
+model ChannelAnalogOnChannelSchema {
+  channelSchemaId Int
+  stationId       Int
+  order           Int
+
+  schema  ChannelSchema @relation(fields: [channelSchemaId], references: [id])
+  station Station       @relation(fields: [stationId], references: [id])
+
+  @@id([channelSchemaId, stationId])
+}
+
+model Group {
+  id         Int      @id @default(autoincrement())
+  title      String
+  type       String
+  identifier Int
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  stations Station[]
+  channels ChannelDigitalOnChannelSchema[]
+}

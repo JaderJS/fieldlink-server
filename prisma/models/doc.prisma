@@ -1,0 +1,83 @@
+enum DocStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  REVIEW
+}
+
+enum DocType {
+  PAGE
+  DATABASE
+  TEMPLATE
+  BOARD
+  CALENDAR
+  GALLERY
+}
+
+enum DocVisibility {
+  PRIVATE
+  PUBLIC
+  WORKSPACE
+  SHARED
+}
+
+model Doc {
+  //Identification
+  cuid  String  @id @default(cuid())
+  title String
+  slug  String  @unique
+  icon  String?
+
+  //Content
+  content Json
+
+  //metadata and organization
+  parentCuid   String?
+  templateCuid String?
+
+  //status and visibility
+  status     DocStatus     @default(DRAFT)
+  visibility DocVisibility @default(PRIVATE)
+  isDeleted  Boolean       @default(false)
+  isFavorite Boolean       @default(false)
+  isTemplate Boolean       @default(false)
+  isPublic   Boolean       @default(false)
+  isLocked   Boolean       @default(false)
+
+  //Categories
+  tags     String[] @db.Text
+  category String?
+  color    String?
+
+  //property if database
+  properties Json?
+
+  //Metadata edition
+  updatedCuid String
+  createdCuid String
+  version     Int    @default(1)
+
+  //Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+  archivedAt  DateTime?
+
+  orders Order[]
+  works  Work[]
+
+  children Doc[] @relation("parentDocs")
+  copies   Doc[] @relation("templateDocs")
+
+  parent    Doc? @relation("parentDocs", fields: [parentCuid], references: [cuid])
+  template  Doc? @relation("templateDocs", fields: [templateCuid], references: [cuid])
+  updatedBy User @relation("updatedDocs", fields: [updatedCuid], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdBy User @relation("createdDocs", fields: [createdCuid], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([parentCuid])
+  @@index([createdCuid])
+  @@index([updatedCuid])
+  @@index([isDeleted])
+  @@index([isFavorite])
+  @@index([status])
+}
