@@ -1,9 +1,3 @@
-import { createTransport } from 'nodemailer'
+import { Resend } from "resend"
 
-export const emailNode = createTransport({
-    service: "gmail",
-    auth: {
-        user: "jader.jader55@gmail.com",
-        pass: ""
-    }
-}) 
+export const resend = new Resend("re_YZ1nMXuB_B4nJJU1Cx3BTAmC8xQpMTia7")
