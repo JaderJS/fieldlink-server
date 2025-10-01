@@ -75,44 +75,25 @@ const upsertStation = async (req: FastifyRequest, res: FastifyReply) => {
         longitude: z.coerce.number(),
         isActive: z.boolean(),
         mode: z.enum(['digital', 'analog']),
-        digital: z.object({
-            id: z.coerce.number().optional(),
-            slot: z.coerce.number().min(0).max(2),
-            colorCode: z.coerce.number().min(0).max(15)
-        }).optional(),
-        analog: z.object({
-            id: z.coerce.number().optional(),
-            silent: z.enum(["CSQ", "TPL", "DPL"]),
-            encoder: z.coerce.number().optional(),
-            decoder: z.coerce.number().optional(),
-        }).superRefine((data, ctx) => {
-            if (data.silent !== 'CSQ') {
-                if (data.encoder === undefined) {
-                    ctx.addIssue({
-                        code: 'custom',
-                        message: "Encoder é obrigatório quando Silent não é CSQ",
-                        path: ["encoder"],
-                    })
-                }
-                if (data.decoder === undefined) {
-                    ctx.addIssue({
-                        code: 'custom',
-                        message: "Decoder é obrigatório quando Silent não é CSQ",
-                        path: ["decoder"],
-                    })
-                }
-            }
-        }).optional()
-    }).transform(({ analog, digital, mode, ...data }, ctx) => {
-        if (mode === 'digital') {
-            return { ...data, mode, digital }
-        }
-        return {
-            ...data,
-            mode,
-            analog: analog?.silent === 'CSQ' ? { silent: analog?.silent } : analog
-        }
-    }).parse(req.body)
+    }).and(z.union([
+        z.object({
+            mode: z.literal("digital"), digital: z.object({
+                id: z.coerce.number().default(-1),
+                stationId: z.coerce.number(),
+                slot: z.coerce.number(),
+                colorCode: z.coerce.number(),
+            }),
+        }),
+        z.object({
+            mode: z.literal("analog"), analog: z.object({
+                id: z.coerce.number().default(-1),
+                stationId: z.coerce.number(),
+                silent: z.enum(["CSQ", "TPL", "DPL_N", "DPL_I"]),
+                encoder: z.coerce.number(),
+                decoder: z.coerce.number()
+            }),
+        }),
+    ])).parse(req.body)
 
     const stationMutation = await db.station.upsert({
         where: { id },
@@ -135,6 +116,43 @@ const upsertStation = async (req: FastifyRequest, res: FastifyReply) => {
             tx,
         }
     })
+    if (mode === "analog" && "analog" in station) {
+        await db.stationAnalog.upsert({
+            where: {
+                id: station.analog.id,
+                stationId: stationMutation.id
+            },
+            create: {
+                silent: station.analog.silent,
+                encoder: station.analog.encoder,
+                decoder: station.analog.decoder,
+                stationId: stationMutation.id
+            },
+            update: {
+                silent: station.analog.silent,
+                encoder: station.analog.encoder,
+                decoder: station.analog.decoder,
+            }
+        })
+    }
+    else if (mode === "digital" && "digital" in station) {
+        await db.stationDigital.upsert({
+            where: {
+                id: station.digital.id,
+                stationId: stationMutation.id
+            },
+            create: {
+                colorCode: station.digital.colorCode,
+                slot: station.digital.slot,
+                stationId: stationMutation.id
+            },
+            update: {
+                colorCode: station.digital.colorCode,
+                slot: station.digital.slot,
+            }
+        })
+    }
+
     return res.send({ station: stationMutation })
 }
 

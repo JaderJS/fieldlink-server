@@ -1,50 +1,55 @@
-import { IGroup, IProperty, Property } from '@/models/property-models'
-import { User } from '@/models/user-model'
 import { db } from '@/plugins/prisma.plugins'
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { Types } from 'mongoose'
-import { object, z } from 'zod'
+import { z } from 'zod'
 
 const getGroups = async (req: FastifyRequest, res: FastifyReply) => {
     const query = z.object({
-        station: z.object({
-            id: z.coerce.number()
-        }).optional()
+        stationId: z.coerce.number().optional()
     }).optional().parse(req.query)
 
-    const groups = await db.group.findMany({
-        where: Object.keys(query ?? {}).length !== 0 ? { stations: { some: { id: query?.station?.id } } } : undefined
+    const groupsQuery = await db.group.findMany({
+        where: !!query?.stationId ? { stations: { every: { id: query.stationId } } } : undefined
     })
 
-    return res.send({ groups })
+    return res.send({ groups: groupsQuery })
+}
+
+const getGroup = async (req: FastifyRequest, res: FastifyReply) => {
+    const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
+
+    const groupsQuery = await db.group.findMany({
+        where: { id }
+    })
+
+    return res.send({ group: groupsQuery })
 }
 
 const upsertGroup = async (req: FastifyRequest, res: FastifyReply) => {
 
     const { id, title, type, identifier, stationId } = z.object({
-        id: z.coerce.number().default(0),
+        id: z.coerce.number().default(-1),
         title: z.string(),
         type: z.enum(['group', 'all', 'private']),
-        identifier: z.coerce.number(),
+        identifier: z.coerce.string(),
         stationId: z.coerce.number().optional(),
     }).parse(req.body)
 
-    await db.group.upsert({
+    const groupMutation = await db.group.upsert({
         where: { id },
         create: {
-            identifier,
+            identifier: Number(identifier),
             title,
             type,
             stations: !!stationId ? { connect: { id: stationId } } : undefined
         },
         update: {
-            identifier,
+            identifier: Number(identifier),
             title,
             type
         }
     })
 
-    return res.status(201).send()
+    return res.status(201).send({ group: groupMutation })
 
 }
 
@@ -59,6 +64,7 @@ const deleteGroup = async (req: FastifyRequest, res: FastifyReply) => {
 
 export {
     getGroups,
+    getGroup,
     upsertGroup,
     deleteGroup
 }

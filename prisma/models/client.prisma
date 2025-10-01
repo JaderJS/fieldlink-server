@@ -33,9 +33,8 @@ model Property {
   updateAt DateTime @updatedAt
   createAt DateTime @default(now())
 
-  client  Client    @relation(fields: [clientId], references: [id])
+  client   Client    @relation(fields: [clientId], references: [id])
   stations Station[]
-
 }
 
 enum TypeAnalogSilent {
@@ -57,13 +56,12 @@ model Station {
   updateAt   DateTime @updatedAt
   createAt   DateTime @default(now())
 
-  property                 Property                        @relation(fields: [propertyId], references: [id])
-  digital                  StationDigital?
-  analog                   StationAnalog?
-  equipments               Equipment[]
-  groups                   Group[]
-  channelsAnalogOnStation  ChannelAnalogOnChannelSchema[]
-  channelsDigitalOnStation ChannelDigitalOnChannelSchema[]
+  property       Property        @relation(fields: [propertyId], references: [id])
+  digital        StationDigital?
+  analog         StationAnalog?
+  equipments     Equipment[]
+  groups         Group[]
+  channelSchemas ChannelSchema[]
 }
 
 model StationDigital {
@@ -84,38 +82,40 @@ model StationAnalog {
 }
 
 model ChannelSchema {
-  id      Int    @id @default(autoincrement())
-  title   String
-  content String
+  id        Int    @id @default(autoincrement())
+  title     String
+  content   Json?
+  stationId Int
 
   equipments      Equipment[]
   channelsAnalog  ChannelAnalogOnChannelSchema[]
   channelsDigital ChannelDigitalOnChannelSchema[]
+  station         Station                         @relation(fields: [stationId], references: [id])
 }
 
 model ChannelDigitalOnChannelSchema {
   channelSchemaId Int
-  stationId       Int
   groupId         Int
   slot            Int
-  order           Int
+  colorCode       Int
+  order           Int @default(autoincrement())
 
-  schema  ChannelSchema @relation(fields: [channelSchemaId], references: [id])
-  station Station       @relation(fields: [stationId], references: [id])
-  group   Group         @relation(fields: [groupId], references: [id])
+  schema ChannelSchema @relation(fields: [channelSchemaId], references: [id])
+  group  Group         @relation(fields: [groupId], references: [id])
 
-  @@id([channelSchemaId, stationId, groupId])
+  @@id([channelSchemaId, groupId])
 }
 
 model ChannelAnalogOnChannelSchema {
   channelSchemaId Int
-  stationId       Int
-  order           Int
+  silent          TypeAnalogSilent
+  encoder         Float
+  decoder         Float
+  order           Int              @default(autoincrement())
 
-  schema  ChannelSchema @relation(fields: [channelSchemaId], references: [id])
-  station Station       @relation(fields: [stationId], references: [id])
+  schema ChannelSchema @relation(fields: [channelSchemaId], references: [id])
 
-  @@id([channelSchemaId, stationId])
+  @@id([channelSchemaId])
 }
 
 model Group {

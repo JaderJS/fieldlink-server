@@ -12,8 +12,8 @@ export const propertyController = {
         const propertiesQuery = await db.property.findMany({
             where: filters ? {
                 clientId: filters.clientId
-            } : undefined,  
-            include: { stations: true, client: true }
+            } : undefined,
+            include: { stations: { include: { analog: true, digital: true } }, client: true }
         })
         return res.send({ properties: propertiesQuery })
     }

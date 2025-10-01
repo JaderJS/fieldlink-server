@@ -20,6 +20,7 @@ import supplierRoutes from './models/supplier/supplier.routes'
 import authRoutes from './models/auth/auth.routes'
 import installmentRoutes from './models/installment/installment.routes'
 import stationsRoutes from './models/station/property.routes'
+import channelSchemaRoutes from './models/channel.schema/channel.schema.routes'
 
 import { server } from './lib/fastify'
 import config from '../config'
@@ -29,7 +30,7 @@ server.register(authRoutes)
 server.register(userRoutes, { prefix: `/user` })
 server.register(notificationRoutes, { prefix: `/notification` })
 server.register(propertyRoutes, { prefix: `/property` })
-server.register(groupRoutes, { prefix: `/group` })
+server.register(groupRoutes, { prefix: `/groups` })
 server.register(equipmentRoutes, { prefix: `/equipments` })
 server.register(serviceRoutes, { prefix: '/service' })
 server.register(transactionsRoutesV2, { prefix: '/transaction' })
@@ -47,6 +48,7 @@ server.register(cartRoutes, { prefix: '/cart' })
 server.register(supplierRoutes, { prefix: '/supplier' })
 server.register(propertyRoutes, { prefix: '/properties' })
 server.register(stationsRoutes, { prefix: '/stations' })
+server.register(channelSchemaRoutes, { prefix: '/channels-schemas' })
 
 server.register(globalRoutes)
 
