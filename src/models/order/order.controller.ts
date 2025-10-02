@@ -5,6 +5,8 @@ import transactions from '../transaction/transactions.routes'
 import { content } from 'googleapis/build/src/apis/content'
 import { differenceInHours } from 'date-fns'
 import { Prisma } from '@prisma/client'
+import { resend } from '@/core/email'
+import { OrderTemplate } from '@/html/order/order'
 
 const getOrders = async (req: FastifyRequest, res: FastifyReply) => {
 
@@ -171,30 +173,6 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             }
         })
 
-        // for (const installment of transaction.installments) {
-        //     await tx.installment.upsert({
-        //         where: { id: installment.id },
-        //         create: {
-        //             dueAt: installment.dueAt,
-        //             installmentsNumber: 1,
-        //             value: installment.value,
-        //             transactionId: transactionMutation.id,
-        //             billed: false,
-        //             status: installment.status,
-        //             createdCuid: user.cuid,
-        //             updatedCuid: user.cuid,
-        //             periodId: (await tx.period.findOrFallbackCurrentMonth(installment.periodId)).id
-        //         },
-        //         update: {
-        //             dueAt: installment.dueAt,
-        //             value: installment.value,
-        //             billed: false,
-        //             status: installment.status,
-        //             updatedCuid: user.cuid,
-        //             periodId: (await tx.period.findOrFallbackCurrentMonth(installment.periodId)).id
-        //         }
-        //     })
-        // }
         await tx.installment.deleteMany({ where: { transactionId: transactionMutation.id, id: { notIn: transaction.installments.map(i => i.id) } } })
         const installmentsPromise = Promise.all(transaction.installments.map(async (installment) => {
             return tx.installment.upsert({
@@ -392,19 +370,60 @@ const deleteOrder = async (req: FastifyRequest, res: FastifyReply) => {
 
 const sendEmailOrder = async (req: FastifyRequest, res: FastifyReply) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
-    const { to, subject, text, html } = z.object({ to: z.email(), subject: z.email(), text: z.string().nullish(), html: z.string().nullish() }).parse(req.body)
+    const { to, subject } = z.object({
+        to: z.union([z.email()]),
+        subject: z.string(),
+    }).parse(req.body)
 
     const order = await db.order.findUniqueOrThrow({
         where: { id },
         include: {
-            works: {},
-            sales: {},
-            client: {},
-            // transactions: { include: { period: true } }
+            works: {
+                include: {
+                    sales: {
+                        include: {
+                            productsOnSale: {
+                                include: { product: { include: { categories: true } } }
+                            }
+                        }
+                    }
+                }
+            },
+            sales: {
+                include: {
+                    productsOnSale: {
+                        include: { product: { include: { categories: true } } }
+                    }
+                }
+            },
+            client: {
+                include: {
+                    properties: {
+                        include: {
+                            stations: true
+                        }
+                    }
+                }
+            },
+            transaction: {
+                include: {
+                    bank: true,
+                    company: true,
+                    installments: true
+                }
+            }
         }
     })
 
-    return res.send()
+    const resp = await resend.emails.send({
+        from: 'fieldlink@resend.dev',
+        to: to,
+        subject: subject,
+        react: OrderTemplate({ order })
+    })
+
+    console.log(resp)
+    return res.send({ order: order })
 }
 export {
     getOrders,

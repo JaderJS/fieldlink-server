@@ -7,7 +7,7 @@ const orderRoutes = async (server: FastifyInstance) => {
     server.post('/', { onRequest: [server.auth] }, upsertOrder)
     server.delete('/:id', { onRequest: [server.auth] }, deleteOrder)
 
-    server.post(`/send/email`,{onRequest:[server.auth]}, sendEmailOrder)
+    server.post(`/:id/send/email`, { onRequest: [server.auth] }, sendEmailOrder)
 }
 
 export default orderRoutes

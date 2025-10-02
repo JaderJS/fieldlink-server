@@ -7,7 +7,7 @@
     "calendar": "tsx --env-file .env src/plugins/calendar.ts",
     "seed": "tsx --env-file .env src/plugins/seed.ts",
     "start": "tsx src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest"
   },
   "author": "",
   "license": "ISC",
@@ -23,6 +23,7 @@
     "@googleapis/calendar": "^9.8.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "@prisma/client": "^6.15.0",
+    "@react-email/components": "^0.5.5",
     "@types/node": "^22.7.4",
     "@types/nodemailer": "^7.0.0",
     "bcrypt": "^5.1.1",
@@ -48,8 +49,10 @@
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/luxon": "^3.4.2",
+    "@types/react": "^19.2.0",
     "depcheck": "^1.4.7",
-    "prisma": "^6.15.0"
+    "prisma": "^6.15.0",
+    "vitest": "^3.2.4"
   },
   "prisma": {
     "schema": "./prisma"
