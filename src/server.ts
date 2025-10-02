@@ -5,7 +5,7 @@ import equipmentRoutes from '@/models/equipment/equipment.routes'
 import globalRoutes from '@/routes/global'
 import groupRoutes from '@/models/group/group.routes'
 import serviceRoutes from '@/models/service/service.routes'
-import transactionsRoutesV2 from '@/models/transaction/transactions.routes'
+import transactionsRoutes from '@/models/transaction/transactions.routes'
 import periodRoutes from '@/models/period/period.routes'
 import companyRoutes from '@/models/company/company.routes'
 import clientRoutes from '@/models/client/client.routes'
@@ -33,7 +33,7 @@ server.register(propertyRoutes, { prefix: `/property` })
 server.register(groupRoutes, { prefix: `/groups` })
 server.register(equipmentRoutes, { prefix: `/equipments` })
 server.register(serviceRoutes, { prefix: '/service' })
-server.register(transactionsRoutesV2, { prefix: '/transaction' })
+server.register(transactionsRoutes, { prefix: '/transactions' })
 server.register(installmentRoutes, { prefix: '/installments' })
 server.register(periodRoutes, { prefix: '/period' })
 server.register(companyRoutes, { prefix: '/company' })

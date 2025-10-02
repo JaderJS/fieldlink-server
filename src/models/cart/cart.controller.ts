@@ -15,7 +15,7 @@ const getCarts = async (req: FastifyRequest, res: FastifyReply) => {
         }
     })
 
-    const carts = cartsQuery.map((cart)=>({
+    const carts = cartsQuery.map((cart) => ({
         ...cart,
         transaction: {
             ...cart.transaction,
@@ -59,7 +59,7 @@ const upsertCart = async (req: FastifyRequest, res: FastifyReply) => {
     const { id, total, title, supplierId, productsOnCart, transaction, otherValues } = z.object({
         id: z.coerce.number().default(-1),
         title: z.string(),
-        total: z.coerce.number(),
+        total: z.coerce.number().transform(arg => arg * 100),
         supplierId: z.coerce.number(),
         transaction: z.object({
             id: z.coerce.number().default(-1),
@@ -105,6 +105,7 @@ const upsertCart = async (req: FastifyRequest, res: FastifyReply) => {
         const transitionMutation = await tx.transactions.upsert({
             where: { id: transaction.id },
             create: {
+                total: total,
                 title: transaction.title,
                 type: transaction.type,
                 updatedCuid: user.cuid,
@@ -113,6 +114,7 @@ const upsertCart = async (req: FastifyRequest, res: FastifyReply) => {
                 companyId: (await tx.company.findOrFallback(transaction.companyId))?.id!,
             },
             update: {
+                total: total,
                 title: transaction.title,
                 type: transaction.type,
                 updatedCuid: user.cuid,

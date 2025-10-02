@@ -65,7 +65,7 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
             serviceId: z.number().nullish(),
             linkTo: z.coerce.number().nullish(),
             installments: z.array(z.object({
-                id: z.coerce.number().default(0),
+                id: z.coerce.number().default(-1),
                 value: z.coerce.number().transform(v => v * 100),
                 status: z.enum(["PENDING", "PAID", "PARTIAL", "CANCELLED", "REFUNDED"]),
                 installmentsNumber: z.coerce.number(),
@@ -75,11 +75,9 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
                 dueAt: z.coerce.date(),
                 paidAt: z.coerce.date().optional(),
                 installmentsTotal: z.coerce.number().optional(),
-                paymentReference: z.string().optional(),
+                paymentReference: z.string().nullish(),
             })).default([])
-        })
-        // .transform(({ value, type, ...args }) => ({ ...args, type, value: type === 'OUTPUT' ? Math.abs(value) * -1 : Math.abs(value) }))
-        .parse(req.body)
+        }).parse(req.body)
 
 
     const mutation = await db.$transaction(async (tx) => {
@@ -127,6 +125,8 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
             }
         })
         await tx.installment.deleteMany({ where: { transactionId: transaction.id, id: { notIn: installments.map(i => i.id) } } })
+        
+        
         for (const { id: installmentId, ...installment } of installments) {
             await tx.installment.upsert({
                 where: { id: installmentId },
@@ -151,13 +151,23 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
     return res.status(200).send({ transaction: mutation })
 }
 
+const deleteTransaction = async (req: FastifyRequest, res: FastifyReply) => {
+    const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
+
+    const transactionMutation = await db.transactions.update({
+        where: { id },
+        data: { isDelete: true }
+    })
+    return res.send({ transaction: transactionMutation })
+}
+
 const upsertTransactionPeriod = async (req: FastifyRequest, res: FastifyReply) => {
     const { transactionId, periodName } = z.object({ transactionId: z.coerce.number(), periodName: z.string() }).parse(req.body)
     const period = await db.period.findFirstOrThrow({ where: { name: periodName } })
     await db.transactions.update({
         where: { id: transactionId },
         data: {
-            updatedBy: { connect: { cuid: req.user.cuid } },
+            updatedBy: { connect: { id: req.user.cuid } },
         }
     })
 
@@ -168,5 +178,6 @@ export {
     getTransactions,
     getTransaction,
     upsertTransaction,
+    deleteTransaction,
     upsertTransactionPeriod
 }

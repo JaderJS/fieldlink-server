@@ -1,5 +1,5 @@
 import { db } from '@/plugins/prisma.plugins'
-import { add } from 'date-fns'
+import { add, differenceInCalendarDays } from 'date-fns'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import config from '@/../../config'
@@ -7,53 +7,54 @@ import { Prisma } from '@prisma/client'
 import { applyFilters } from '@/core/filter'
 
 const getNotification = async (req: FastifyRequest, res: FastifyReply) => {
-    const where = await applyFilters<Prisma.UserWhereInput>({
-        appliedFiltersInput: req.query as { [key: string]: unknown },
-        availableFilters: {
-            cuid: async ({ filter }) => {
-                return {
-                    where: {
-                        cuid: {
-                            equals: String(filter),
-                        },
-                    },
-                };
-            },
-        },
-    })
 
-    const fromAt = add(new Date(), { days: 1 })
+    const now = new Date()
 
     const transactionQuery = await db.transactions.findMany({
         where: {
             isDelete: false,
-            billed: false,
-            fromAt: {
-                lte: fromAt
-            }
         },
-        select: {
-            id: true,
-            title: true,
-            value: true,
-            serviceId: true,
-            bankId: true,
-            orderId: true,
-            fromAt: true,
-        }
+        include: {
+            installments: {
+                where: {
+                    dueAt: {
+                        lte: now
+                    },
+                    billed: false
+                },
+                select: {
+                    id: true,
+                    value: true,
+                    dueAt: true,
+                    status: true,
+                    installmentsNumber: true,
+                    transactionId: true
+                }
+            },
+            bank: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' }
     })
 
-    const notifications = transactionQuery.map(({ id, title, value, serviceId, bankId, orderId }) => {
-
-        return {
-            title,
-            link: config.URL_FRONT + `/adm/transaction/${id}`,
-            description: `
-            ${value.toLocaleString('pt-BR', { style: "currency", currency: 'BRL' })}
-            `.trim(),
-            fromAt
-        }
-    })
+    const notifications = transactionQuery.flatMap(tx =>
+        tx.installments.map(inst => {
+            const valueNumber = Number(inst.value) / 100
+            return {
+                id: `installment-${inst.id}`,
+                kind: 'installment',
+                transactionId: tx.id,
+                installmentId: inst.id,
+                title: tx.title,
+                bank: tx.bank ?? null,
+                amount: valueNumber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+                amountRaw: inst.value,
+                dueAt: inst.dueAt,
+                daysLeft: differenceInCalendarDays(new Date(inst.dueAt), now), // negativo = vencida
+                status: inst.status,
+                link: `/adm/installments/${inst.id}`,
+            }
+        })
+    )
 
     return res.send({ notifications: notifications })
 }

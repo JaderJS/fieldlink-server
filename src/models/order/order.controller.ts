@@ -60,7 +60,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
         id: z.number().default(0),
         title: z.string(),
         clientId: z.coerce.number().default(-1),
-        total: z.coerce.number(),
+        total: z.coerce.number().transform(arg => arg * 100),
         discount: z.coerce.number(),
         flag: z.string(),
         date: z.object({
@@ -155,6 +155,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             where: { id: transaction.id },
             include: { installments: true },
             create: {
+                total: total,
                 title: transaction.title,
                 type: "INPUT",
                 bankId: transaction.bankId,
@@ -163,6 +164,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
                 updatedCuid: user.cuid,
             },
             update: {
+                total: total,
                 title: transaction.title,
                 bankId: transaction.bankId,
                 updatedCuid: user.cuid,
@@ -223,7 +225,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             where: { id },
             create: {
                 title,
-                total,
+                total: total / 100,
                 clientId: (await tx.client.findOrFallback(clientId)).id,
                 categoryId: (await tx.categoryOrder.findOrFallback(-1)).id,
                 transactionId: transactionMutation.id,
@@ -233,7 +235,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             },
             update: {
                 title,
-                total,
+                total: total / 100,
                 flag,
                 discount: discount * 100,
                 otherValues: otherValues,
