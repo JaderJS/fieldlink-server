@@ -12,7 +12,7 @@ const getBanks = async (req: FastifyRequest, res: FastifyReply) => {
                     where: {
                         id: Number(filter)
                     },
-                };
+                }
             },
             name: async ({ filter }) => ({ where: { name: String(filter) } })
         },
