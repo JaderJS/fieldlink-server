@@ -58,7 +58,7 @@ export function OrderTemplate({ order }: { order: IOrder }) {
                     <Container className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-sm">
                         {/* Header */}
                         <Section>
-                            <Text className="text-2xl font-bold text-yellow-600">R$ {order.total.toLocaleString('pt-BR')}</Text>
+                            <Text className="text-2xl font-bold text-yellow-600">R$ {(order.total/100).toLocaleString('pt-BR')}</Text>
                             <Text className="text-sm text-gray-500 mt-1">
                                 Ordem #{order.id} • {new Date(order.createdAt).toLocaleString("pt-BR")}
                             </Text>
@@ -116,12 +116,11 @@ export function OrderTemplate({ order }: { order: IOrder }) {
 
                                                     <div style={{ textAlign: "right", minWidth: 180 }}>
                                                         <div className="text-sm">Qtd: <strong>{pos.quantity}</strong></div>
-                                                        <div className="text-sm">Estoque: {p?.stock ?? "—"}</div>
                                                         <div className="text-sm">Unit: {money(pos.price)}</div>
                                                         <div className="text-sm font-semibold">Subtotal: {money((pos.price ?? 0) * (pos.quantity ?? 1))}</div>
                                                     </div>
                                                 </div>
-                                            );
+                                            )
                                         })}
                                     </div>
                                 ))}

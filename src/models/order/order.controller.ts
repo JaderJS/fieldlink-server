@@ -7,6 +7,8 @@ import { differenceInHours } from 'date-fns'
 import { Prisma } from '@prisma/client'
 import { resend } from '@/core/email'
 import { OrderTemplate } from '@/html/order/order'
+import { renderToBuffer } from '@react-pdf/renderer'
+import { Nf } from '@/html/order/template.nf'
 
 const getOrders = async (req: FastifyRequest, res: FastifyReply) => {
 
@@ -22,10 +24,19 @@ const getOrders = async (req: FastifyRequest, res: FastifyReply) => {
                     }
                 }
             }
+        },
+        orderBy: {
+            createdAt: 'desc',
         }
     })
 
-    return res.send({ orders: ordersQuery })
+    const orders = ordersQuery.map(order => ({
+        ...order,
+        total: (order.discount === 0 ? order.total : (order.total * (1 - order.discount / 100))) / 100,
+        discount: order.discount / 100
+    }))
+
+    return res.send({ orders: orders })
 }
 
 const getOrderById = async (req: FastifyRequest, res: FastifyReply) => {
@@ -53,17 +64,23 @@ const getOrderById = async (req: FastifyRequest, res: FastifyReply) => {
             }
         }
     })
-    return res.send({ order: { ...orderQuery, discount: orderQuery.discount / 100 } })
+    return res.send({
+        order: {
+            ...orderQuery,
+            discount: orderQuery.discount / 100,
+            total: orderQuery.total / 100
+        }
+    })
 }
 
 const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
     const user = req.user
     const { id, title, clientId, total, flag, discount, sales, works, otherValues, date, transaction } = z.object({
-        id: z.number().default(0),
+        id: z.number().default(-1),
         title: z.string(),
         clientId: z.coerce.number().default(-1),
         total: z.coerce.number().transform(arg => arg * 100),
-        discount: z.coerce.number(),
+        discount: z.coerce.number().transform(arg => arg * 100),
         flag: z.string(),
         date: z.object({
             start: z.coerce.date(),
@@ -203,7 +220,8 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             where: { id },
             create: {
                 title,
-                total: total / 100,
+                discount: discount,
+                total: total,
                 clientId: (await tx.client.findOrFallback(clientId)).id,
                 categoryId: (await tx.categoryOrder.findOrFallback(-1)).id,
                 transactionId: transactionMutation.id,
@@ -213,9 +231,9 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             },
             update: {
                 title,
-                total: total / 100,
+                total: total,
                 flag,
-                discount: discount * 100,
+                discount: discount,
                 otherValues: otherValues,
                 updatedBy: { connect: { id: user.cuid } },
                 client: { connect: { id: clientId } },
@@ -249,54 +267,6 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
                 })
             }
         }
-
-        // for (const work of works) {
-        //     const workMutation = await tx.work.upsert({
-        //         where: { id: work.id },
-        //         create: {
-        //             orderId: order.id,
-        //             content: work.content,
-        //             otherValues: work.otherValues,
-        //             total: work.total,
-        //             title: work.title,
-        //             updatedByCuid: user.cuid,
-        //             date: work.date ?? Prisma.JsonNull,
-        //             archives: work.archives
-        //         },
-        //         update: {
-        //             total: work.total,
-        //             otherValues: work.otherValues,
-        //             updatedByCuid: user.cuid,
-        //             content: work.content,
-        //             date: work.date ?? Prisma.JsonNull,
-        //             archives: work.archives
-        //         }
-        //     })
-
-        //     await tx.sale.deleteMany({ where: { works: { some: { id: workMutation.id } }, orderId: order.id, id: { notIn: work.sales.map(s => s.id) } } })
-        //     for (const sale of work.sales) {
-        //         const saleMutation = await tx.sale.upsert({
-        //             where: { id: sale.id },
-        //             create: { total: sale.total, orderId: order.id, works: { connect: { id: workMutation.id } } },
-        //             update: { total: sale.total, orderId: order.id }
-        //         })
-        //         for (const productOnSale of sale.productsOnSale) {
-        //             await tx.productsOnSales.upsert({
-        //                 where: { saleId_productId: { saleId: saleMutation.id, productId: productOnSale.product.id } },
-        //                 create: {
-        //                     productId: productOnSale.product.id,
-        //                     saleId: saleMutation.id,
-        //                     price: productOnSale.price,
-        //                     quantity: productOnSale.quantity,
-        //                 },
-        //                 update: {
-        //                     price: productOnSale.price,
-        //                     quantity: productOnSale.quantity,
-        //                 }
-        //             })
-        //         }
-        //     }
-        // }
 
         await tx.work.deleteMany({ where: { orderId: order.id, id: { notIn: works.map(w => w.id) } } })
         const worksPromise = Promise.all(works.map(async (work) => {
@@ -415,16 +385,51 @@ const sendEmailOrder = async (req: FastifyRequest, res: FastifyReply) => {
         }
     })
 
+    const itens = order.sales.flatMap((sale) =>
+        sale.productsOnSale.map((pos) => ({
+            name: pos.product.name,
+            qtd: pos.quantity ?? 1,
+            value: pos.price ?? 0,
+            und: "und" as const,
+        }))
+    );
+
+    const pdfBuffer = await renderToBuffer(
+        Nf({
+            emitter: {
+                name: order.transaction?.company?.name ?? "Link Network",
+                cnpj: order.transaction?.company?.cnpj ?? "00.000.000/0000-00",
+            },
+            client: {
+                name: order.client?.name ?? "Cliente não identificado",
+                property: order.client?.properties?.[0]?.title ?? "—",
+                state: "MT",
+                cnpj: "000.000.000/0000-00",
+                town: order.client?.properties?.[0]?.city ?? "—",
+            },
+            type: "Ordem de Serviço",
+            itens,
+            discount: order.discount
+                ? { percent: order.discount, value: (order.total * order.discount) / 100 }
+                : { percent: 0, value: 0 },
+            obs: "",
+        })
+    );
+
     const resp = await resend.emails.send({
         from: 'fieldlink@resend.dev',
         to: to,
         subject: subject,
-        react: OrderTemplate({ order })
+        react: OrderTemplate({ order }),
+        attachments: [{
+            filename: `${order.title} [${order.id}] [${order.client.name}] at.pdf`,
+            content: pdfBuffer.toString('base64'),
+        }]
     })
 
-    console.log(resp)
     return res.send({ order: order })
 }
+
 export {
     getOrders,
     upsertOrder,
