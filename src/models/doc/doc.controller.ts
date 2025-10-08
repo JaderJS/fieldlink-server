@@ -1,12 +1,10 @@
 import { db } from '@/plugins/prisma.plugins'
-import { Order, Prisma } from '@prisma/client'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
-import { DEFAULT } from './constants/default'
 
 const getDocs = async (req: FastifyRequest, res: FastifyReply) => {
 
-    const docsQuery = await db.doc.findMany()
+    const docsQuery = await db.doc.findMany({ where: { client: { none: {} } } })
 
     return res.send({ docs: docsQuery })
 }
@@ -20,21 +18,21 @@ const getDocByCuid = async (req: FastifyRequest, res: FastifyReply) => {
         where: { cuid },
     })
 
-    console.log(docQuery)
     return res.send({ doc: docQuery })
 }
 
 const upsertDoc = async (req: FastifyRequest, res: FastifyReply) => {
     const user = req.user
-    // console.log('Raw body:', req.body)
-    // console.log('Type of content:', typeof req.body?.content)
-    // console.log('Content value:', req.body?.content)
-    const { cuid, title, slug, content, isDeleted } = z.object({
+
+    const { cuid, title, slug, content, isDeleted, connect } = z.object({
         cuid: z.string().default(""),
         slug: z.string(),
         title: z.string(),
         content: z.record(z.string(), z.any()),
-        isDeleted: z.boolean().default(false)
+        isDeleted: z.boolean().default(false),
+        connect: z.object({
+            clientId: z.coerce.number().optional()
+        }).optional()
     }).parse(req.body)
 
     const doc = await db.doc.upsert({
@@ -45,12 +43,14 @@ const upsertDoc = async (req: FastifyRequest, res: FastifyReply) => {
             updatedCuid: user.cuid,
             slug,
             content,
+            client: !!connect?.clientId ? { connect: { id: connect.clientId } } : undefined
         },
         update: {
             title,
             updatedCuid: user.cuid,
             content,
-            isDeleted: isDeleted
+            isDeleted: isDeleted,
+            client: !!connect?.clientId ? { connect: { id: connect.clientId } } : undefined
         },
     })
 

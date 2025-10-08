@@ -74,6 +74,8 @@ model Doc {
   updatedBy User @relation("updatedDocs", fields: [updatedCuid], references: [id], onDelete: Cascade, onUpdate: Cascade)
   createdBy User @relation("createdDocs", fields: [createdCuid], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  client Client[]
+
   @@index([parentCuid])
   @@index([createdCuid])
   @@index([updatedCuid])

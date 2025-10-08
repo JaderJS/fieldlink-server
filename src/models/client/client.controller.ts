@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { db } from '@/plugins/prisma.plugins'
+import { add } from 'date-fns'
 
 export const clientController = {
     getAll: async (req: FastifyRequest, res: FastifyReply) => {
@@ -36,10 +37,72 @@ export const clientController = {
     },
     getById: async (req: FastifyRequest, res: FastifyReply) => {
         const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
-        const clientQuery = await db.client.findUnique({ where: { id } })
+        const clientQuery = await db.client.findUnique({ where: { id }, include: { properties: true, doc: true, moreInfos: true } })
         return res.send({ client: clientQuery })
     },
     upsert: async (req: FastifyRequest, res: FastifyReply) => {
-        return res.status(501).send()
+        const { id, name, moreInfos, propertyIds, docId } = z.object({
+            id: z.number().default(-1),
+            name: z.string(),
+            moreInfos: z.object({
+                id: z.coerce.number().default(-1),
+                state: z.string(),
+                city: z.string(),
+                email: z.email().optional(),
+                phone: z.string().optional(),
+                address: z.string().optional(),
+                zipCode: z.string().optional(),
+            }).optional(),
+            propertyIds: z.array(z.coerce.number()).default([]),
+            docId: z.string().optional()
+        }).parse(req.body)
+
+        const clientMutation = await db.client.upsert({
+            where: { id },
+            create: {
+                name,
+                docId: docId,
+                property: "Desconhecido",
+            },
+            update: {
+                name,
+                docId: docId,
+            },
+            include: { moreInfos: true, }
+        })
+
+        if (moreInfos) {
+            await db.clientsMoreInfos.upsert({
+                where: { id: moreInfos?.id },
+                create: {
+                    city: moreInfos.city,
+                    state: moreInfos.state,
+                    email: moreInfos?.email,
+                    phone: moreInfos?.phone,
+                    address: moreInfos?.address,
+                    zipCode: moreInfos?.zipCode,
+                    clientId: clientMutation.id
+                },
+                update: {
+                    city: moreInfos.city,
+                    state: moreInfos.state,
+                    email: moreInfos?.email,
+                    phone: moreInfos?.phone,
+                    address: moreInfos?.address,
+                    zipCode: moreInfos?.zipCode,
+                }
+            })
+        }
+
+        const properties = await db.property.findMany({ where: { id: { in: propertyIds } } })
+        const assignedProperties = properties.map(async (property) => {
+            return await db.property.update({
+                where: { id: property.id },
+                data: { clientId: clientMutation.id }
+            })
+        })
+        const result = await Promise.all(assignedProperties)
+
+        return res.send({ client: clientMutation })
     }
 }

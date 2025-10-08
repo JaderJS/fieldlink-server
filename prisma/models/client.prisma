@@ -3,8 +3,30 @@ model Client {
   name     String
   property String
 
+  docId String?
+
+  doc Doc? @relation(fields: [docId], references: [cuid])
+
   orders     Order[]
   properties Property[]
+  moreInfos  ClientsMoreInfos?
+}
+
+model ClientsMoreInfos {
+  id        Int      @id @default(autoincrement())
+  clientId  Int      @unique
+  city      String
+  state     String
+  email     String?
+  phone     String?
+  address   String?
+  zipCode   String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@map("clients_more_infos")
 }
 
 model Equipment {
