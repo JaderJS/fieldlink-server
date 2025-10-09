@@ -1,8 +1,6 @@
 import { db } from '@/plugins/prisma.plugins'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
-import transactions from '../transaction/transactions.routes'
-import { content } from 'googleapis/build/src/apis/content'
 import { differenceInHours } from 'date-fns'
 import { Prisma } from '@prisma/client'
 import { resend } from '@/core/email'
@@ -15,6 +13,7 @@ const getOrders = async (req: FastifyRequest, res: FastifyReply) => {
     const ordersQuery = await db.order.findMany({
         include: {
             category: true,
+            status: true,
             works: true,
             client: true,
             sales: {
@@ -32,6 +31,7 @@ const getOrders = async (req: FastifyRequest, res: FastifyReply) => {
 
     const orders = ordersQuery.map(order => ({
         ...order,
+        flag: order.status?.name || "Desconhecido",
         total: (order.discount === 0 ? order.total : (order.total * (1 - order.discount / 100))) / 100,
         discount: order.discount / 100
     }))
@@ -45,6 +45,7 @@ const getOrderById = async (req: FastifyRequest, res: FastifyReply) => {
     const orderQuery = await db.order.findUniqueOrThrow({
         where: { id }, include: {
             client: true,
+            status: true,
             category: true,
             works: {
                 include: {
@@ -64,9 +65,11 @@ const getOrderById = async (req: FastifyRequest, res: FastifyReply) => {
             }
         }
     })
+
     return res.send({
         order: {
             ...orderQuery,
+            status: orderQuery.status,
             discount: orderQuery.discount / 100,
             total: orderQuery.total / 100
         }
@@ -75,8 +78,9 @@ const getOrderById = async (req: FastifyRequest, res: FastifyReply) => {
 
 const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
     const user = req.user
-    const { id, title, clientId, total, flag, discount, sales, works, otherValues, date, transaction } = z.object({
+    const { id, title, clientId, total, flag, discount, statusId, sales, works, otherValues, date, transaction } = z.object({
         id: z.number().default(-1),
+        statusId: z.coerce.number().default(-1),
         title: z.string(),
         clientId: z.coerce.number().default(-1),
         total: z.coerce.number().transform(arg => arg * 100),
@@ -220,6 +224,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             where: { id },
             create: {
                 title,
+                orderStatusId: (await tx.orderStatus.findOrFallback(statusId)).id,
                 discount: discount,
                 total: total,
                 clientId: (await tx.client.findOrFallback(clientId)).id,
@@ -235,6 +240,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
                 flag,
                 discount: discount,
                 otherValues: otherValues,
+                status: { connect: { id: statusId } },
                 updatedBy: { connect: { id: user.cuid } },
                 client: { connect: { id: clientId } },
                 date: date ?? Prisma.JsonNull

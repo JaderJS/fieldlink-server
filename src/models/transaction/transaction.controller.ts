@@ -1,31 +1,43 @@
 import { createEvent, deleteEvent } from '@/plugins/calendar'
 import { db } from '@/plugins/prisma.plugins'
 import { findOrCreatePeriod } from '@/services/period.services'
-import { Transactions } from '@prisma/client'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { formatEventDescription } from './transaction.services'
 
 const getTransactions = async (req: FastifyRequest, res: FastifyReply) => {
     const transactionsQuery = await db.transactions.findMany({
-        where: { isDelete: false },
+        where: {
+            isDelete: false,
+            OR: [{
+                order: { OR: [{ status: { flag: { notIn: ["BUDGET"] } } }] }
+            }, {
+                order: null
+            }]
+        },
         include: {
             createdBy: { omit: { password: true, isEnable: true, role: true } },
             updatedBy: { omit: { password: true, isEnable: true, role: true } },
             bank: true,
             order: { include: { client: true } },
             cart: { include: { supplier: true } },
-            installments: { include: { period: true } },
+            installments: { include: { period: true }, orderBy: { period: { order: 'asc' } } },
             company: true,
         },
         orderBy: { createdAt: 'desc' }
     })
 
-    const transactions = transactionsQuery.map((t) => ({
-        ...t,
-        total: t.total / 100,
-        installments: t.installments.map((i) => ({ ...i, value: i.value / 100 }))
-    }))
+    const transactions = transactionsQuery
+        .sort((a, b) => {
+            const periodA = a.installments[0]?.period.order ?? 0
+            const periodB = b.installments[0].period.order ?? 0
+            return periodB - periodA
+        })
+        .map((t) => ({
+            ...t,
+            total: t.total / 100,
+            installments: t.installments.map((i) => ({ ...i, value: i.value / 100 }))
+        }))
 
     return res.send({ transactions })
 }
@@ -124,11 +136,10 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
                 total: total,
             }
         })
+
         await tx.installment.deleteMany({ where: { transactionId: transaction.id, id: { notIn: installments.map(i => i.id) } } })
-        
-        
-        for (const { id: installmentId, ...installment } of installments) {
-            await tx.installment.upsert({
+        const installmentsPromise = installments.map(async ({ id: installmentId, ...installment }) => {
+            return await tx.installment.upsert({
                 where: { id: installmentId },
                 create: {
                     ...installment,
@@ -143,7 +154,25 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
                     periodId: installment.periodId !== 0 ? installment.periodId : (await findOrCreatePeriod({ periodAt: installment.dueAt })).id,
                 }
             })
-        }
+        })
+        await Promise.all(installmentsPromise)
+        // for (const { id: installmentId, ...installment } of installments) {
+        //     await tx.installment.upsert({
+        //         where: { id: installmentId },
+        //         create: {
+        //             ...installment,
+        //             transactionId: transaction.id,
+        //             createdCuid: user.cuid,
+        //             updatedCuid: user.cuid,
+        //             periodId: installment.periodId !== 0 ? installment.periodId : (await findOrCreatePeriod({ periodAt: installment.dueAt })).id,
+        //         },
+        //         update: {
+        //             ...installment,
+        //             updatedCuid: user.cuid,
+        //             periodId: installment.periodId !== 0 ? installment.periodId : (await findOrCreatePeriod({ periodAt: installment.dueAt })).id,
+        //         }
+        //     })
+        // }
 
         return transaction
     })

@@ -7,19 +7,23 @@ import dashboard from './dashboard.routes'
 
 const getHealth = async (req: FastifyRequest, res: FastifyReply) => {
 
-
-    const periodNow = await findOrCreatePeriod({ periodAt: new Date() })
-
     const transactionsQuery = await db.transactions.findMany({
-        where: { isDelete: false },
+        where: {
+            isDelete: false,
+            OR: [{
+                order: { OR: [{ status: { flag: { notIn: ["BUDGET"] } } }] }
+            }, {
+                order: null
+            }]
+        },
         include: { installments: true }
-    });
+    })
 
     // buscar periods com installments (com transaction, para facilitar)
     const transactionOnPeriodsQuery = await db.period.findMany({
         include: { installments: { include: { transaction: true } } },
         orderBy: { name: "asc" }
-    });
+    })
 
     // opcional: buscar bancos para runway (assumindo que Bank tem campo 'balance')
     const banksQuery = await db.bank.findMany({

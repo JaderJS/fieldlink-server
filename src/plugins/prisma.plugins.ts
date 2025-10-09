@@ -94,6 +94,18 @@ const db = new PrismaClient({
                 const promise = categoryOrder || await c.findFirstOrThrow()
                 return promise
             }
+        },
+        orderStatus: {
+            async findOrFallback(statusId: number) {
+                const context = Prisma.getExtensionContext(this)
+                const client = await context.findUnique({ where: { id: statusId } })
+                const client_ = await context.findUnique({ where: { name: "Desconhecido" } })
+                const promise = client || client_ || await context.upsert({
+                    where: { id: statusId },
+                    create: { name: "Desconhecido", color: "#165594ff" }, update: {}
+                })
+                return promise
+            }
         }
     }
 })
