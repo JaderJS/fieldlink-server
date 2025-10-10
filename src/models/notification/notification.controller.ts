@@ -13,6 +13,11 @@ const getNotification = async (req: FastifyRequest, res: FastifyReply) => {
     const transactionQuery = await db.transactions.findMany({
         where: {
             isDelete: false,
+            OR: [{
+                order: { OR: [{ status: { flag: { notIn: ["BUDGET"] } } }] }
+            }, {
+                order: null
+            }]
         },
         include: {
             installments: {
