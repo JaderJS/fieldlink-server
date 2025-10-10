@@ -2,9 +2,6 @@ import { db } from '@/plugins/prisma.plugins'
 import { add, differenceInCalendarDays } from 'date-fns'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
-import config from '@/../../config'
-import { Prisma } from '@prisma/client'
-import { applyFilters } from '@/core/filter'
 
 const getNotification = async (req: FastifyRequest, res: FastifyReply) => {
 

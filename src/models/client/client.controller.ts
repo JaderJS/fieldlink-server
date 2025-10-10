@@ -104,5 +104,12 @@ export const clientController = {
         const result = await Promise.all(assignedProperties)
 
         return res.send({ client: clientMutation })
+    },
+    delete: async (req: FastifyRequest, res: FastifyReply) => {
+        const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
+
+        const clientMutation = await db.client.delete({ where: { id } })
+
+        return res.send({ client: clientMutation })
     }
 }
