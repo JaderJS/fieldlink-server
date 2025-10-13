@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify"
-import { deleteProduct, getProductById, getProducts, upsertProduct } from "@/models/product/product.controller"
+import { deleteProduct, getAnalyticsProducts, getProductById, getProducts, upsertProduct } from "@/models/product/product.controller"
 import { getCategories } from "./category.controller"
 
 const productRoutes = async (server: FastifyInstance) => {
@@ -10,6 +10,9 @@ const productRoutes = async (server: FastifyInstance) => {
 
     //category
     server.get('/category', { onRequest: [server.auth] }, getCategories)
+
+    //analytics
+    server.get('/analytics', { onRequest: [server.auth] }, getAnalyticsProducts)
 }
 
 export default productRoutes

@@ -12,11 +12,15 @@ const getCarts = async (req: FastifyRequest, res: FastifyReply) => {
                     product: true
                 }
             }
+        },
+        orderBy:{
+            createdAt:"desc"
         }
     })
 
     const carts = cartsQuery.map((cart) => ({
         ...cart,
+        total: cart.total / 100,
         transaction: {
             ...cart.transaction,
             total: cart.transaction.total / 100,
@@ -43,6 +47,7 @@ const getCartById = async (req: FastifyRequest, res: FastifyReply) => {
 
     const cart = {
         ...cartQuery,
+        total: cartQuery.total / 100,
         transaction: {
             ...cartQuery.transaction,
             total: cartQuery.transaction.total / 100,
