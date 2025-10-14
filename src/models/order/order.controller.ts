@@ -195,25 +195,26 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
         })
 
         await tx.installment.deleteMany({ where: { transactionId: transactionMutation.id, id: { notIn: transaction.installments.map(i => i.id) } } })
-        const installmentsPromise = Promise.all(transaction.installments.map(async (installment) => {
+        const installmentsPromise = Promise.all(transaction.installments.map(async (installment, index) => {
             return tx.installment.upsert({
                 where: { id: installment.id },
                 create: {
                     dueAt: installment.dueAt,
-                    installmentsNumber: 1,
+                    installmentsNumber: index,
                     value: installment.value,
                     transactionId: transactionMutation.id,
                     billed: installment.billed,
-                    status: installment.status,
+                    status: installment.billed ? 'PAID' : installment.status,
                     createdCuid: user.cuid,
                     updatedCuid: user.cuid,
                     periodId: (await tx.period.findOrFallbackCurrentMonth(installment.periodId)).id
                 },
                 update: {
+                    installmentsNumber: index,
                     dueAt: installment.dueAt,
                     value: installment.value,
                     billed: installment.billed,
-                    status: installment.status,
+                    status: installment.billed ? 'PAID' : installment.status,
                     updatedCuid: user.cuid,
                     periodId: (await tx.period.findOrFallbackCurrentMonth(installment.periodId)).id
                 }
