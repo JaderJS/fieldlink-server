@@ -8,6 +8,7 @@ export const clientController = {
         const clientsQuery = await db.client.findMany({
             include: {
                 properties: true,
+                moreInfos: true,
                 orders: {
                     orderBy: { updatedAt: 'asc' },
                     include: {

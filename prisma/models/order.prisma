@@ -15,9 +15,8 @@ model Order {
   transactionId Int      @unique
   isBudget      Boolean  @default(false)
 
-  // transactions Transactions[]
   orderStatusId Int     @default(1)
-  content       String?
+  content       Json?
   docCuid       String?
   date          Json?
 
@@ -61,6 +60,7 @@ model Cart {
   otherValues   Json[]   @default([])
   createdAt     DateTime @default(now())
   transactionId Int      @unique
+  content       Json?
 
   productsOnCart ProductsOnCarts[]
   transaction    Transactions      @relation(fields: [transactionId], references: [id], onUpdate: Cascade)
@@ -157,6 +157,8 @@ model Work {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   updatedByCuid String
+  orderN        Int      @default(0)
+  open          Boolean  @default(false)
 
   docCuid  String?
   content  Json?

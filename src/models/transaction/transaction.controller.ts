@@ -21,7 +21,7 @@ const getTransactions = async (req: FastifyRequest, res: FastifyReply) => {
             bank: true,
             order: { include: { client: true } },
             cart: { include: { supplier: true } },
-            installments: { include: { period: true }, orderBy: { period: { order: 'asc' } } },
+            installments: { include: { period: true }, orderBy: [{ period: { order: 'asc' } }, { dueAt: 'desc' }] },
             company: true,
         },
         orderBy: { createdAt: 'desc' }
@@ -50,7 +50,7 @@ const getTransaction = async (req: FastifyRequest, res: FastifyReply) => {
             createdBy: { omit: { password: true, isEnable: true, role: true } },
             updatedBy: { omit: { password: true, isEnable: true, role: true } },
             bank: true,
-            installments: true,
+            installments: { include: { period: true }, orderBy: [{ period: { order: 'asc' } }, { dueAt: 'desc' }] },
             company: true,
         },
     })
@@ -156,23 +156,6 @@ const upsertTransaction = async (req: FastifyRequest, res: FastifyReply) => {
             })
         })
         await Promise.all(installmentsPromise)
-        // for (const { id: installmentId, ...installment } of installments) {
-        //     await tx.installment.upsert({
-        //         where: { id: installmentId },
-        //         create: {
-        //             ...installment,
-        //             transactionId: transaction.id,
-        //             createdCuid: user.cuid,
-        //             updatedCuid: user.cuid,
-        //             periodId: installment.periodId !== 0 ? installment.periodId : (await findOrCreatePeriod({ periodAt: installment.dueAt })).id,
-        //         },
-        //         update: {
-        //             ...installment,
-        //             updatedCuid: user.cuid,
-        //             periodId: installment.periodId !== 0 ? installment.periodId : (await findOrCreatePeriod({ periodAt: installment.dueAt })).id,
-        //         }
-        //     })
-        // }
 
         return transaction
     })

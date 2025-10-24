@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "public"."Work" ADD COLUMN     "open" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "orderN" INTEGER NOT NULL DEFAULT 0;
