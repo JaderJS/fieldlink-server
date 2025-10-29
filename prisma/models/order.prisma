@@ -42,10 +42,11 @@ enum OrderStatusFlag {
 }
 
 model OrderStatus {
-  id    Int             @id @default(autoincrement())
-  name  String          @unique
-  color String
-  flag  OrderStatusFlag @default(NOTHING)
+  id       Int             @id @default(autoincrement())
+  name     String          @unique
+  color    String
+  flag     OrderStatusFlag @default(NOTHING)
+  ordering Int             @default(0)
 
   orders Order[]
 

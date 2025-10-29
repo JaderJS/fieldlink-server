@@ -24,10 +24,8 @@ const getOrders = async (req: FastifyRequest, res: FastifyReply) => {
                 }
             }
         },
-        orderBy: {
-            createdAt: 'desc',
-        }
-    })
+        orderBy: [{ status: { ordering: 'asc' } }, { createdAt: 'asc' }]
+    })  
 
     const orders = ordersQuery.map(order => ({
         ...order,

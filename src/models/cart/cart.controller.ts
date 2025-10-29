@@ -13,9 +13,7 @@ const getCarts = async (req: FastifyRequest, res: FastifyReply) => {
                 }
             }
         },
-        orderBy:{
-            createdAt:"desc"
-        }
+        orderBy: [{ createdAt: 'desc' }]
     })
 
     const carts = cartsQuery.map((cart) => ({
