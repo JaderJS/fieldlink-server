@@ -73,7 +73,14 @@ const getOrderById = async (req: FastifyRequest, res: FastifyReply) => {
             sales: orderQuery.sales.map(sale => ({
                 ...sale,
                 content: {}
-            }))
+            })),
+            transaction: {
+                ...orderQuery.transaction,
+                installments: orderQuery.transaction.installments.map((installment) => ({
+                    ...installment,
+                    value: installment.value / 100
+                }))
+            }
         }
     })
 }
@@ -117,7 +124,7 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             hasNotify: z.coerce.boolean(),
             installments: z.array(z.object({
                 id: z.coerce.number().default(-1),
-                value: z.coerce.number(),
+                value: z.coerce.number().transform(prop => prop * 100),
                 status: z.enum(["PENDING", "PAID", "PARTIAL", "CANCELLED", "REFUNDED"]),
                 installmentsNumber: z.coerce.number(),
                 paymentMethod: z.enum(["CARD", "PIX", "BOLETO", "TED", "CASH", "OTHER", "NOT_DECLARED"]),

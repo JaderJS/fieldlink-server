@@ -79,7 +79,6 @@ export const getOrderAnalytics = async (req: FastifyRequest, res: FastifyReply) 
     const totalProfit = totalSale - totalCost
     const profitMargin = totalSale > 0 ? (totalProfit / totalSale) * 100 : 0
 
-
     const grossMargin = profitMargin
 
     const recommendations: string[] = []

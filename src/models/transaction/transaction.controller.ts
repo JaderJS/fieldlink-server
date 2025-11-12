@@ -49,12 +49,18 @@ const getTransaction = async (req: FastifyRequest, res: FastifyReply) => {
         include: {
             createdBy: { omit: { password: true, isEnable: true, role: true } },
             updatedBy: { omit: { password: true, isEnable: true, role: true } },
+            order: true,
+            cart: true,
             bank: true,
             installments: { include: { period: true }, orderBy: [{ period: { order: 'asc' } }, { dueAt: 'desc' }] },
             company: true,
         },
     })
-    const transaction = { ...transactionQuery, total: (transactionQuery?.total ?? 0) / 100, installments: transactionQuery?.installments.map((i) => ({ ...i, value: i.value / 100 })) }
+    const transaction = {
+        ...transactionQuery,
+        total: (transactionQuery?.total ?? 0) / 100,
+        installments: transactionQuery?.installments.map((i) => ({ ...i, value: i.value / 100 }))
+    }
     return res.send({ transaction: transaction })
 }
 
