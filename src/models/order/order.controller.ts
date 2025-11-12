@@ -25,7 +25,7 @@ const getOrders = async (req: FastifyRequest, res: FastifyReply) => {
             }
         },
         orderBy: [{ status: { ordering: 'asc' } }, { createdAt: 'asc' }]
-    })  
+    })
 
     const orders = ordersQuery.map(order => ({
         ...order,
@@ -69,7 +69,11 @@ const getOrderById = async (req: FastifyRequest, res: FastifyReply) => {
             ...orderQuery,
             status: orderQuery.status,
             discount: orderQuery.discount / 100,
-            total: orderQuery.total / 100
+            total: orderQuery.total / 100,
+            sales: orderQuery.sales.map(sale => ({
+                ...sale,
+                content: {}
+            }))
         }
     })
 }

@@ -89,7 +89,6 @@ model Sale {
 
   productsOnSale ProductsOnSales[]
   works          Work[]
-  // otherValues    OtherValues[]
   order          Order             @relation(fields: [orderId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 }
 

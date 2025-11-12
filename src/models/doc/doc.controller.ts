@@ -23,10 +23,17 @@ const getDocByCuid = async (req: FastifyRequest, res: FastifyReply) => {
 
 const upsertDoc = async (req: FastifyRequest, res: FastifyReply) => {
     const user = req.user
-
+    
     const { cuid, title, slug, content, isDeleted, connect } = z.object({
         cuid: z.string().default(""),
-        slug: z.string(),
+        slug: z.string().transform(prop => prop
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")      // limpa marcas de acentuação
+            .replace(/[^a-zA-Z0-9\s-]/g, "")      // remove caracteres especiais
+            .trim()                               // tira espaços extras
+            .replace(/\s+/g, "-")                 // substitui espaços por "-"
+            .toLowerCase()
+        ),
         title: z.string(),
         content: z.record(z.string(), z.any()),
         isDeleted: z.boolean().default(false),
