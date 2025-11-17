@@ -83,15 +83,18 @@ const upsertProduct = async (req: FastifyRequest, res: FastifyReply) => {
 
     const mutation = await db.$transaction(async (tx) => {
         const user = req.user
-        const product = await db.product.findUniqueOrThrow({
+        const product = await tx.product.findUnique({
             where: { id },
             include: { cartsOnProduct: true, salesOnProduct: true, categories: true }
         })
 
-        const stock = (
-            product.cartsOnProduct.reduce((acc, cart) => acc += cart.quantity, 0) +
-            - product.salesOnProduct.reduce((acc, sale) => acc += sale.quantity, 0)
-        )
+        let stock: number = 0
+        if (!!product) {
+            stock = (
+                product.cartsOnProduct.reduce((acc, cart) => acc += cart.quantity, 0) +
+                - product.salesOnProduct.reduce((acc, sale) => acc += sale.quantity, 0)
+            )
+        }
 
         const currentCategoryIds = product?.categories.map(c => c.id) || []
         const categoriesToConnect = categoriesIds.filter(id => !currentCategoryIds.includes(id))
@@ -120,11 +123,11 @@ const upsertProduct = async (req: FastifyRequest, res: FastifyReply) => {
                 description,
                 updatedByCuid: user.cuid,
                 histories: {
-                    create: {
+                    create: !!product ? {
                         cost: product?.cost,
                         price: product?.price,
                         stock: product?.stock,
-                    }
+                    } : undefined
                 },
                 categories: {
                     disconnect: categoriesToDisconnect.map(id => ({ id })),
