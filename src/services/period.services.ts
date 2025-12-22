@@ -1,5 +1,5 @@
 import { db } from "@/plugins/prisma.plugins"
-import { Period } from "@prisma/client"
+import { Period } from "@/../prisma/generated/client"
 import { endOfMonth, format, startOfMonth } from "date-fns"
 
 const findOrCreatePeriod = async ({ periodAt }: { periodAt: Date }): Promise<Period> => {

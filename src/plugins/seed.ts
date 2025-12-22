@@ -1,8 +1,7 @@
 import { writeFileSync, mkdirSync, existsSync } from "fs"
 import { join } from "path"
 import { db } from "./prisma.plugins"
-import data from "@/../assets/data.json"
-import { Installment } from "@prisma/client"
+import { Installment } from "@/../prisma/generated/client"
 import { text } from "stream/consumers"
 
 //root cuid cm6b5mkd80000mqdzjoeic94y

@@ -1,7 +1,6 @@
 import "fastify"
 import "@fastify/jwt"
-import { PrismaClient, Role } from "@prisma/client"
-import { db } from "@/plugins/prisma.plugins"
+import { db } from "./src/plugins/prisma.plugins"
 
 declare module "fastify" {
     interface FastifyInstance {
@@ -31,7 +30,6 @@ declare module "@fastify/jwt" {
         }
         user: {
             cuid: string,
-            _id: string,
             email: string,
             name: string,
             role: 'USER' | 'ROOT' | 'ADMIN'

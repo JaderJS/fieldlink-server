@@ -1,7 +1,7 @@
 import { applyFilters } from "@/core/filter"
 import { makeFilters, whereConstructor } from "@/core/prisma.where"
 import { db } from "@/plugins/prisma.plugins"
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/../prisma/generated/client"
 import { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify"
 import { z } from "zod"
 
@@ -38,6 +38,7 @@ const getStations = async (req: FastifyRequest, res: FastifyReply) => {
     }) as Prisma.StationWhereInput | undefined
 
     // console.log(query, JSON.stringify(where, null, 2))
+
 
     const stationsQuery = await db.station.findMany({
         where: where,

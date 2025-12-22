@@ -2,7 +2,7 @@ import { db } from '@/plugins/prisma.plugins'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { differenceInHours } from 'date-fns'
-import { Prisma } from '@prisma/client'
+import { Prisma } from "@/../prisma/generated/client"
 import { resend } from '@/core/email'
 import { OrderTemplate } from '@/html/order/order'
 import { renderToBuffer } from '@react-pdf/renderer'

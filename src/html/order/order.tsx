@@ -1,4 +1,5 @@
-import { Prisma } from "@prisma/client"
+import { Prisma } from "@/../prisma/generated/client"
+
 import { Body, Button, Container, Head, Html, Img, Preview, Section, Tailwind, Text } from "@react-email/components"
 
 type IOrder = Prisma.OrderGetPayload<{
@@ -58,7 +59,7 @@ export function OrderTemplate({ order }: { order: IOrder }) {
                     <Container className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-sm">
                         {/* Header */}
                         <Section>
-                            <Text className="text-2xl font-bold text-yellow-600">R$ {(order.total/100).toLocaleString('pt-BR')}</Text>
+                            <Text className="text-2xl font-bold text-yellow-600">R$ {(order.total / 100).toLocaleString('pt-BR')}</Text>
                             <Text className="text-sm text-gray-500 mt-1">
                                 Ordem #{order.id} • {new Date(order.createdAt).toLocaleString("pt-BR")}
                             </Text>
@@ -105,7 +106,7 @@ export function OrderTemplate({ order }: { order: IOrder }) {
                                                             <Text className="font-medium">{p?.name ?? "Produto"}</Text>
                                                             <div style={{ marginTop: 4 }}>
                                                                 {/* badges */}
-                                                                {(p?.categories ?? []).slice(0, 3).map(({id, name}) => (
+                                                                {(p?.categories ?? []).slice(0, 3).map(({ id, name }) => (
                                                                     <span key={id} className="px-2 py-0.5 text-xs rounded mr-2" style={{ background: "#f0f0f0" }}>
                                                                         {name}
                                                                     </span>

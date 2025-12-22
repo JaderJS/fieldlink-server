@@ -1,6 +1,7 @@
 import { differenceInDays, format, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Installment, Prisma } from "@prisma/client";
+import { Prisma, Installment } from "@/../prisma/generated/client"
+
 
 /**
  * Converte centavos -> reais (number com 2 casas)

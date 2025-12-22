@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@/../prisma/generated/client"
 
 /* ---------------- utilitários de tipo ---------------- */
 
@@ -20,12 +20,12 @@ type GroupDef<T, W> = {
  */
 type FiltersMapFromShape<T, W> = {
   [K in keyof T]?: NonOpt<T[K]> extends Array<infer Item>
-    ? Item extends object
-      ? GroupDef<Item, W> | FiltersMapFromShape<Item, W>
-      : FilterFn<W, Item>
-    : NonOpt<T[K]> extends object
-    ? GroupDef<NonOpt<T[K]>, W> | FiltersMapFromShape<NonOpt<T[K]>, W>
-    : FilterFn<W, NonOpt<T[K]>>;
+  ? Item extends object
+  ? GroupDef<Item, W> | FiltersMapFromShape<Item, W>
+  : FilterFn<W, Item>
+  : NonOpt<T[K]> extends object
+  ? GroupDef<NonOpt<T[K]>, W> | FiltersMapFromShape<NonOpt<T[K]>, W>
+  : FilterFn<W, NonOpt<T[K]>>;
 };
 
 /* ---------------- makeFilters helper ---------------- */

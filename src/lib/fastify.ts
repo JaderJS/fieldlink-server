@@ -7,7 +7,9 @@ import prismaPlugin from '@/plugins/prisma.plugins'
 import fastifyQs from 'fastify-qs'
 import google from '@/core/google'
 import auth from '@/core/auth'
+import FastifyBetterAuth from 'fastify-better-auth';
 import { authPlugin } from "@/plugins/auth"
+import { auth as authBetterAuth } from "@/auth"
 import { errorHandler } from '@/core/errors'
 import { validatorCompiler, serializerCompiler, type ZodTypeProvider, jsonSchemaTransform } from "fastify-type-provider-zod"
 import { fastifySwagger } from "@fastify/swagger"
@@ -43,7 +45,6 @@ server.register(cors, {
 server.register(fastifyJwt, {
     secret: config.KEY_TOKEN,
     formatUser: (user) => ({
-        _id: user._id,
         cuid: user.cuid,
         avatarUrl: user.avatarUrl,
         email: user.email,

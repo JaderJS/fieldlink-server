@@ -1,4 +1,5 @@
-import { Bank, Prisma } from "@prisma/client"
+import { Prisma, Bank } from "@/../prisma/generated/client"
+
 
 const financesBank = (banks: Prisma.BankGetPayload<{ include: { transactions: { include: { installments: true } } } }>[]) => {
     return banks.map(({ transactions, ...bank }) => {

@@ -1,4 +1,5 @@
 import { oauth2Client } from "@/plugins/google"
+import { db } from "@/plugins/prisma.plugins"
 import { FastifyReply, FastifyRequest } from "fastify"
 import fp from "fastify-plugin"
 import { Credentials } from "google-auth-library"
@@ -7,7 +8,7 @@ import { Credentials } from "google-auth-library"
 export default fp(async function (server) {
     server.decorate("google", async (req: FastifyRequest, res: FastifyReply) => {
         try {
-            const dbGoogleTokens = await server.db.googleTokens.findFirst()
+            const dbGoogleTokens = await db.googleTokens.findFirst()
 
             const tokens = dbGoogleTokens?.tokens as Credentials | undefined
             if (!tokens) {

@@ -1,7 +1,7 @@
 import { deleteArchive, getArchives, uploadArchive, upsertArchive } from "./archive.controller"
 import { FastifyTypedInstance } from "@/../types"
 import { GetArchiveQuerySchema } from "./schemas/getArchives"
-import { Prisma, Archives } from "@prisma/client"
+import { Prisma, Archives } from "@/../prisma/generated/client"
 import { archiveResponse } from "./archive.schemas"
 import { z } from "zod"
 import { FastifyInstance } from "fastify"

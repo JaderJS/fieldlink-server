@@ -1,4 +1,5 @@
-import { Equipment, Role, Service, Station, Transactions, User } from "@prisma/client"
+import {Equipment, Role, Service, Station, Transactions, User} from "@/../prisma/generated/client"
+
 
 type PermissionCheck<Key extends keyof Permissions> = boolean | ((user: User, data: Permissions[Key]["dataType"]) => boolean)
 
@@ -57,8 +58,8 @@ const ROLES = {
         transactions: {
             view: true,
             create: true,
-            update: (user, transaction) => user.cuid === transaction.createCuid,
-            delete: (user, transaction) => user.cuid === transaction.createCuid
+            update: (user, transaction) => user.id === transaction.createCuid,
+            delete: (user, transaction) => user.id === transaction.createCuid
         }
     }
 } as const satisfies RolesWithPermissions

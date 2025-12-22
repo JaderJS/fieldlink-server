@@ -1,4 +1,5 @@
-import { ServiceType, Prisma } from "@prisma/client"
+import { Prisma, ServiceType } from "@/../prisma/generated/client"
+
 
 type status = "STARTED" | "PENDING" | "FINISHED" | "BILLED" | "DROPPED"
 

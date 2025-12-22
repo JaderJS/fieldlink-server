@@ -1,7 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from '@/plugins/prisma.plugins'
 import { applyFilters } from '@/core/filter'
-import { Prisma } from '@prisma/client'
+import { Prisma } from "@/../prisma/generated/client"
+
 
 const getBanks = async (req: FastifyRequest, res: FastifyReply) => {
     const where = await applyFilters<Prisma.BankWhereInput>({
@@ -23,7 +24,7 @@ const getBanks = async (req: FastifyRequest, res: FastifyReply) => {
     })
 
     const banks = banksQuery.map((bank, index) => ({ ...bank, isDefault: index === 0 ? true : false }))
-    
+
     return res.send({ banks })
 }
 

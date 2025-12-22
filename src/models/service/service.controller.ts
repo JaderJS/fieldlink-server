@@ -1,5 +1,5 @@
 import { db } from '@/plugins/prisma.plugins'
-import { Order, Prisma } from '@prisma/client'
+import { Prisma, Order } from "@/../prisma/generated/client"
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { categoriesOfServiceFn } from './service.services'
@@ -19,7 +19,7 @@ const getServices = async (req: FastifyRequest, res: FastifyReply) => {
     })
 
     const services = categoriesOfServiceFn({ services: servicesQuery })
-    
+
     return res.send({ services })
 }
 

@@ -1,7 +1,7 @@
 import { createEvent, deleteEvent } from '@/plugins/calendar'
 import { db } from '@/plugins/prisma.plugins'
 import { findOrCreatePeriod } from '@/services/period.services'
-import { Transactions } from '@prisma/client'
+import { Transactions } from "@/../prisma/generated/client"
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 
@@ -10,6 +10,7 @@ const getInstallments = async (req: FastifyRequest, res: FastifyReply) => {
     const params = z.object({
         transaction: z.object({ id: z.coerce.number() }).optional()
     }).optional().parse(req.query)
+    
 
     const installmentsQuery = await db.installment.findMany({
         where: params ? {
@@ -49,7 +50,6 @@ const upsertInstallment = async (req: FastifyRequest, res: FastifyReply) => {
 
 
     const mutation = await db.$transaction(async (tx) => {
-
         return await tx.installment.upsert({
             where: { id },
             create: {

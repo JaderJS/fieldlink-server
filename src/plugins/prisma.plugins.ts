@@ -1,8 +1,14 @@
 import fp from 'fastify-plugin'
-import { Prisma, PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '../../prisma/generated/client'
 import { add, addMonths, startOfMonth, format } from 'date-fns'
+import { PrismaPg } from '@prisma/adapter-pg'
+
+const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL
+})
 
 const db = new PrismaClient({
+    adapter,
     omit: {
         user: {
             password: true,
