@@ -7,6 +7,7 @@ import { resend } from "./core/email"
 import { createId } from "@paralleldrive/cuid2"
 
 export const auth = betterAuth({
+    basePath: "/auth",
     trustedOrigins: ["*"],
     database: prismaAdapter(db, {
         provider: 'postgresql',

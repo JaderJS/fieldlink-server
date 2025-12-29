@@ -24,7 +24,6 @@ import channelSchemaRoutes from './models/channel.schema/channel.schema.routes'
 
 import { server } from './lib/fastify'
 import config from '../config'
-import { authPlugin } from './plugins/auth'
 
 server.register(authRoutes)
 

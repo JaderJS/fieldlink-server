@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 export const authPlugin = fp(async (fastify) => {
     fastify.route({
         method: ["GET", "POST"],
-        url: "/api/auth/*",
+        url: "/auth/*",
         async handler(request, reply) {
             try {
                 // Monta a URL completa
