@@ -6,13 +6,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl && \
     rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
-COPY package.json bun.lock* ./
+COPY package.json bun.lock* prisma.config.ts *d.ts tsconfig.json config.ts types.ts ./
 RUN bun install --no-save --frozen-lockfile
 
 FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
 WORKDIR /app
-COPY . .
+
+ARG DATABASE_URL=postgresql://localhost:5432/dummy
+ENV DATABASE_URL=${DATABASE_URL}
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app ./
+COPY prisma ./prisma
+COPY src ./src
+
 RUN bunx prisma generate
 
 FROM base AS runner

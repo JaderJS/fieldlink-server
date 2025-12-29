@@ -5,6 +5,8 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile.bun
+      args:
+        DATABASE_URL: ${DATABASE_URL}
     environment:
       - PORT=${PORT}
       - REGION_MINIO=${REGION_MINIO}
@@ -19,6 +21,9 @@ services:
       - URL_FRONT=${URL_FRONT}
       - KEY_TOKEN=${KEY_TOKEN}
       - DATABASE_URL=${DATABASE_URL}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL} 
+      - BETTER_AUTH_URI=${BETTER_AUTH_URI}
     ports:
       - "${PORT}:3333"
   # minio:
