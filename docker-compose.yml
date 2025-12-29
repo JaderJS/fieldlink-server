@@ -1,5 +1,6 @@
 services:
   server:
+    container_name: fieldlink-back
     hostname: fieldlink-server
     build: 
       context: .

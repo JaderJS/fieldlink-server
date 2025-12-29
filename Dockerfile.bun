@@ -20,4 +20,4 @@ WORKDIR /app
 COPY --from=builder /app ./
 USER 1001:1001
 
-CMD bun dev
+CMD ["bun","run", "dev"]
