@@ -27,4 +27,6 @@ WORKDIR /app
 COPY --from=builder /app ./
 USER 1001:1001
 
+EXPOSE 3333
+
 CMD ["bun","run", "dev"]

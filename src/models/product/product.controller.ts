@@ -7,7 +7,19 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
         include: {
             categories: true,
             cartsOnProduct: true,
-            salesOnProduct: true
+            salesOnProduct: {
+                include: {
+                    sale: {
+                        include: {
+                            order: {
+                                include: {
+                                    status: true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
         orderBy: {
             stock: "desc",
@@ -20,9 +32,20 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
         const count = product.salesOnProduct.reduce((acc, s) => acc + s.quantity, 0)
 
         const totalIn = product.cartsOnProduct.reduce((acc, c) => acc + (c.quantity ?? 0), 0)
-        const totalOut = product.salesOnProduct.reduce((acc, s) => acc + (s.quantity ?? 0), 0)
 
-        const totalRevenue = product.salesOnProduct.reduce((acc, s) => acc + ((s.quantity ?? 0) * (s.price)), 0)
+        const totalOut = product.salesOnProduct.reduce((acc, sales) => {
+            if (sales.sale.order.status.id !== 2) {
+                acc += (sales.quantity ?? 0)
+            }
+            return acc
+        }, 0)
+
+        const totalRevenue = product.salesOnProduct.reduce((acc, sales) => {
+            if (sales.sale.order.status.id !== 2) {
+                acc += (sales.quantity ?? 0) * (sales.price)
+            }
+            return acc
+        }, 0)
         const prices = product.salesOnProduct.map(s => s.price).filter(s => typeof s === 'number')
 
         const maxPrice = prices.length ? Math.max(...prices) : 0
@@ -35,7 +58,7 @@ const getProducts = async (req: FastifyRequest, res: FastifyReply) => {
             ...product,
             stock: (
                 product.cartsOnProduct.reduce((acc, cart) => acc += cart.quantity, 0) +
-                - product.salesOnProduct.reduce((acc, sale) => acc += sale.quantity, 0)
+                - totalOut
             ),
             group: [...new Set(product.categories.map((c) => c.name))].join(", "),
             summary: {

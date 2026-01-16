@@ -5,8 +5,6 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile.bun
-      args:
-        DATABASE_URL: ${DATABASE_URL}
     environment:
       - PORT=${PORT}
       - REGION_MINIO=${REGION_MINIO}
