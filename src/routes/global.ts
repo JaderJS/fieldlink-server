@@ -5,10 +5,10 @@ import config from "../../config"
 import { z } from "zod"
 import { oauth2Client, scope } from "@/plugins/google"
 import { db } from "@/plugins/prisma.plugins"
+import { BucketStorageProvider } from "@/core/bucket"
 
 
 const MAX_IMAGE_SIZE_UPLOAD = 1024 * 1024 * 4
-const MY_CUID = "cm6b5mkd80000mqdzjoeic94y"
 
 const global = async (server: FastifyInstance) => {
     server.post(`/upload/image`, { onResponse: [server.auth] }, async (req, res) => {
@@ -75,7 +75,6 @@ const global = async (server: FastifyInstance) => {
         const redirectUrl = decodeURIComponent(state || "http://localhost:3000");
         return res.redirect(`${redirectUrl}?auth_success=true`)
     })
-
 }
 
 export default global

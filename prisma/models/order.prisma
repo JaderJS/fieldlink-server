@@ -158,6 +158,7 @@ model Work {
   updatedAt     DateTime @updatedAt
   updatedByCuid String
   orderN        Int      @default(0)
+  disabled      Boolean  @default(false)
   open          Boolean  @default(false)
 
   docCuid  String?

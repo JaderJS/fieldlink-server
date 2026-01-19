@@ -143,6 +143,9 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
             title: z.string(),
             total: z.coerce.number(),
             content: z.record(z.string(), z.any()).optional(),
+            open: z.coerce.boolean().default(true),
+            orderN: z.coerce.number().default(0),
+            disabled: z.coerce.boolean().default(false),
             archives: z.array(z.object({
                 title: z.string(),
                 type: z.string(),
@@ -294,6 +297,9 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
                     otherValues: work.otherValues,
                     total: work.total,
                     title: work.title,
+                    disabled: work.disabled,
+                    orderN: work.orderN,
+                    open: work.open,
                     updatedByCuid: user.cuid,
                     date: work.date ?? Prisma.JsonNull,
                     archives: work.archives
@@ -303,6 +309,9 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
                     otherValues: work.otherValues,
                     updatedByCuid: user.cuid,
                     content: work.content,
+                    disabled: work.disabled,
+                    orderN: work.orderN,
+                    open: work.open,
                     date: work.date ?? Prisma.JsonNull,
                     archives: work.archives
                 }

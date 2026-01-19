@@ -1,8 +1,6 @@
 import { z } from "zod"
 import { Archives } from "@/../prisma/generated/client"
 
-
-
 const archiveCore = z.object({
     title: z.string(),
     type: z.string(),
