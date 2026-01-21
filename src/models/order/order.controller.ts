@@ -358,7 +358,14 @@ const upsertOrder = async (req: FastifyRequest, res: FastifyReply) => {
 const deleteOrder = async (req: FastifyRequest, res: FastifyReply) => {
     const { id } = z.object({ id: z.coerce.number() }).parse(req.params)
 
+    const order = await db.order.findUnique({ where: { id }, include: { transaction: true } })
+
+    if (!order) {
+        return res.status(404).send({ msg: "Order not founded" })
+    }
+
     await db.order.delete({ where: { id } })
+    await db.transactions.delete({ where: { id: order.transaction.id } })
 
     return res.status(204).send()
 }
