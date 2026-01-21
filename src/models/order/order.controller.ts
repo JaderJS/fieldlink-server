@@ -364,8 +364,8 @@ const deleteOrder = async (req: FastifyRequest, res: FastifyReply) => {
         return res.status(404).send({ msg: "Order not founded" })
     }
 
-    await db.order.delete({ where: { id } })
     await db.transactions.delete({ where: { id: order.transaction.id } })
+    await db.order.delete({ where: { id } })
 
     return res.status(204).send()
 }
