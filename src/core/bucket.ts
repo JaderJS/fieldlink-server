@@ -8,7 +8,8 @@ export type StorageProvider = {
     upload(params: {
         key: string,
         buffer: Buffer,
-        contentType: string
+        contentType: string,
+        folder?: string
     }): Promise<{ url: string }>
 
     delete?(key?: string): Promise<void>
@@ -26,9 +27,16 @@ const minio = new Client({
     secretKey: env.SECRET_KEY_MINIO
 })
 
+type UploadParams = {
+    key: string
+    buffer: Buffer
+    contentType: string
+    folder?: string
+}
+
 export class BucketStorageProvider implements StorageProvider {
 
-    async upload({ key, buffer, contentType }: any) {
+    async upload({ key, buffer, contentType, folder }: UploadParams) {
         const bucket = "fieldlink"
 
         const exist = await minio.bucketExists(bucket)
@@ -36,10 +44,20 @@ export class BucketStorageProvider implements StorageProvider {
             await minio.makeBucket(bucket)
         }
 
-        await minio.putObject(bucket, key, buffer, buffer.length, { contentType: contentType })
+        const safeFolder = folder ? folder.replace(/^\/*|\/*$/g, "").replace(/\.\./g, "") : ""
+
+        const objectKey = safeFolder ? `${safeFolder}/${key}` : key
+
+        await minio.putObject(
+            bucket,
+            objectKey,
+            buffer,
+            buffer.length,
+            { contentType }
+        )
 
         return {
-            url: `/${bucket}/${key}`,
+            url: `/${bucket}/${objectKey}`,
         }
     }
 }

@@ -6,9 +6,12 @@ import { z } from "zod"
 import { oauth2Client, scope } from "@/plugins/google"
 import { db } from "@/plugins/prisma.plugins"
 import { BucketStorageProvider } from "@/core/bucket"
+import { UploadService } from "@/services/upload.services"
 
 
 const MAX_IMAGE_SIZE_UPLOAD = 1024 * 1024 * 4
+
+UploadService.configure(new BucketStorageProvider)
 
 const global = async (server: FastifyInstance) => {
     server.post(`/upload/image`, { onResponse: [server.auth] }, async (req, res) => {
@@ -74,6 +77,41 @@ const global = async (server: FastifyInstance) => {
 
         const redirectUrl = decodeURIComponent(state || "http://localhost:3000");
         return res.redirect(`${redirectUrl}?auth_success=true`)
+    })
+
+    //NEW ROUTES
+    server.post(`/upload/img`, { onRequest: [server.auth] }, async (req, res) => {
+        try {
+            const file = await req.file({ limits: { fileSize: MAX_IMAGE_SIZE_UPLOAD } })
+            if (!file) {
+                return res.status(400).send({ msg: 'Verify you image content' })
+            }
+
+            const data = await UploadService.uploadImg(file, { genVariants: false })
+
+            if ("variants" in data) {
+                const archives = Object.entries(data.variants).map(([variant, archive]) => ({
+                    title: variant,
+                    path: archive.path,
+                    pathUrl: archive.pathUrl,
+                    size: archive.size,
+                    type: archive.mimetype,
+                    ownerCuid: req.user.cuid,
+                    createdCuid: req.user.cuid,
+                    updatedCuid: req.user.cuid
+                }))
+
+                const mutation = await db.archives.createManyAndReturn({ data: archives })
+
+                return res.send({ ...mutation })
+            }
+            console.log(data)
+            return res.send({ ...data })
+
+        } catch (error: any) {
+            console.log(error)
+            return res.status(500).send({ msg: 'Ops! You need attempt now', error })
+        }
     })
 }
 

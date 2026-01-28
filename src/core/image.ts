@@ -1,4 +1,10 @@
 import sharp, { Sharp } from "sharp"
+import { gps } from "exifr"
+
+type GpsMetadata = {
+    latitude: number
+    longitude: number
+}
 
 export type ImageVariant = {
     key: string
@@ -28,6 +34,9 @@ export abstract class ImageProcess {
 
 
     static async process(buffer: Buffer): Promise<ProcessedImage> {
+
+        const gpsData = await this.extractGps(buffer)
+        
         const img = sharp(buffer, { failOn: "error" })
 
         const metadata = await img.metadata()
@@ -100,5 +109,41 @@ export abstract class ImageProcess {
                     .negate()
                     .toBuffer()
             )
+    }
+
+    static async extractGps(buffer: Buffer): Promise<GpsMetadata | undefined> {
+        try {
+            const { latitude, longitude } = await gps(buffer)
+            return { latitude, longitude }
+        } catch (error) {
+            return
+        }
+    }
+
+    private static async applyGpsOverlay(img: Sharp, gps: GpsMetadata) {
+        const text = `Lat ${gps.latitude.toFixed(6)} | Lng ${gps.longitude.toFixed(6)}`
+
+        const svg = `
+      <svg width="800" height="60">
+        <style>
+          .bg { fill: rgba(0,0,0,.6); }
+          .txt {
+            fill: white;
+            font-size: 28px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+          }
+        </style>
+        <rect x="0" y="0" width="100%" height="100%" class="bg"/>
+        <text x="20" y="40" class="txt">${text}</text>
+      </svg>
+    `
+
+        return img.composite([
+            {
+                input: Buffer.from(svg),
+                gravity: "southwest"
+            }
+        ])
     }
 }

@@ -20,7 +20,7 @@ model Order {
   docCuid       String?
   date          Json?
 
-  transaction Transactions  @relation(fields: [transactionId], references: [id], onUpdate: Cascade)
+  transaction Transactions  @relation(fields: [transactionId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   updatedBy   User          @relation(fields: [updatedByCuid], references: [id], onUpdate: Cascade)
   client      Client        @relation(fields: [clientId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   category    CategoryOrder @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
